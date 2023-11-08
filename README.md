@@ -1,7 +1,7 @@
 # CS182
 
 ### Discussion
-* Dis1: Introduction & Logistics [ (Done) ] (https://github.com/oldboy818/CS182/blob/main/Discussion/dis1_Introduction%20%26%20Logistics..pdf)
+* Dis1: Introduction & Logistics [_(Done)_] (https://github.com/oldboy818/CS182/blob/main/Discussion/dis1_Introduction%20%26%20Logistics.pdf)
 
 ### A1
 * Q1: kNN  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment1/knn.ipynb)
