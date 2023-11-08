@@ -2,7 +2,8 @@
 
 ### Discussion
 * Dis1: Introduction & Logistics [_(Done)_] (https://github.com/oldboy818/CS182/blob/main/Discussion/dis1_Introduction%20%26%20Logistics.pdf)
-
+* Q1: kNN  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment1/knn.ipynb)
+  
 ### A1
 * Q1: kNN  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment1/knn.ipynb)
 * Q2: SVM  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment1/svm.ipynb)
