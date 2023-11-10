@@ -2,6 +2,7 @@
 
 ### Discussion
 * Dis1: Introduction & Logistics [__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis1_Introduction%20%26%20Logistics..pdf)
+* Dis2: Matrix Calc & Optimization [__(On-going)__]
 
 
 ### A1
