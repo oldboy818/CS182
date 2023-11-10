@@ -7,4 +7,3 @@
 
 ### Assignment1 : Neural Networks & Backprop
 * A1: [__(On-going)__]
->>>>>>> 313ad1da0c97373da21d90ffcbbe458bc7359e16
