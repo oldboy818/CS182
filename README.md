@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 In this assignment you will practice writing backpropagation code, and training
 Neural Networks and Convolutional Neural Networks. The goals of this assignment
 are as follows:
@@ -122,3 +123,14 @@ notebook and place it in the assignment directory before submitting. Also rememb
 to download required output file and place it into submission_logs/ directory.
 
 
+=======
+# CS182 2021 spring Discussion & Assignments solution
+
+### Discussion
+* Dis1: Introduction & Logistics [__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis1_Introduction%20%26%20Logistics..pdf)
+* Dis2: Matrix Calc & Optimization [__(On-going)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis2_Matrix%20Calc%20%26%20Optimization.pdf)
+
+
+### Assignment1 : Neural Networks & Backprop
+* A1: [__(On-going)__]
+>>>>>>> 313ad1da0c97373da21d90ffcbbe458bc7359e16
