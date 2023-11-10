@@ -5,9 +5,5 @@
 * Dis2: Matrix Calc & Optimization [__(On-going)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis2_Matrix%20Calc%20%26%20Optimization.pdf)
 
 
-### A1
-* Q1: kNN  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment1/knn.ipynb)
-* Q2: SVM  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment1/svm.ipynb)
-* Q3: Softmax classifier  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment1/softmax.ipynb)
-* Q4: Two-Layer NN  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment1/two_layer_net.ipynb)
-* Q5: Image Features  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment1/features.ipynb)
+### Assignment1 : Neural Networks & Backprop
+* A1: [__(On-going)__]
