@@ -6,4 +6,12 @@
 * Dis3: Backpropagation & CNNs [__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis3%20Backpropagation%20%26%20CNNs.pdf)
 
 ### Assignment1 : Neural Networks & Backprop
-* A1: [__(On-going)__]
+* Q1: Fully-connected Neural Network [__(On-going)__](https://github.com/oldboy818/CS182/blob/main/assignment1/FullyConnectedNets.ipynb)
+* Q2: Batch Normalization
+* Q3: Dropout
+* Q4: ConvNet
+* Q5: Train a model on CIFAR10 using Pytorch!
+
+### Assignment2 : RNNs & Conv Nets
+### Assignment3 : Natural Language Processing
+### Assignment4 : Deep Reinforcement Learning
