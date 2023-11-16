@@ -14,8 +14,8 @@ def affine_relu_forward(x, w, b):
     - out: Output from the ReLU
     - cache: Object to give to the backward pass
     """
-    a, fc_cache = affine_forward(x, w, b)
-    out, relu_cache = relu_forward(a)
+    a, fc_cache = affine_forward(x, w, b)   # linear layer 출력값
+    out, relu_cache = relu_forward(a)   # ReLU 출력값
     cache = (fc_cache, relu_cache)
     return out, cache
 
@@ -24,9 +24,9 @@ def affine_relu_backward(dout, cache):
     """
     Backward pass for the affine-relu convenience layer
     """
-    fc_cache, relu_cache = cache
-    da = relu_backward(dout, relu_cache)
-    dx, dw, db = affine_backward(da, fc_cache)
+    fc_cache, relu_cache = cache    # forward 값
+    da = relu_backward(dout, relu_cache)    # ReLU 역전파
+    dx, dw, db = affine_backward(da, fc_cache)  # Linear layer 역전파
     return dx, dw, db
 
 
