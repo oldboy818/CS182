@@ -49,14 +49,15 @@ class TwoLayerNet(object):
         # and biases using the keys 'W2' and 'b2'.                                 #
         ############################################################################
         
-        # b1.shape = (H, 1) = (hidden_dim, 1) = (50, 1)
-        # b2.shape = (C, 1) = (num_classes, 1) = (7, 1)
-        self.params['b1'] = np.zeros(shape = (hidden_dim, 1))
-        self.params['b2'] = np.zeros(shape = (num_classes, 1))
         # W1.shape = (D, H) = (input_dim, hidden_dim) = (5, 50)
         # W2.shape = (H, C) = (hidden_dim, num_classes) = (50, 7)
         self.params['W1'] = np.random.normal(scale = weight_scale, size = (input_dim, hidden_dim))
         self.params['W2'] = np.random.normal(scale = weight_scale, size = (hidden_dim, num_classes))
+        
+        # b1.shape = (H, 1) = (hidden_dim, 1) = (50, 1)
+        # b2.shape = (C, 1) = (num_classes, 1) = (7, 1)
+        self.params['b1'] = np.zeros(shape = (hidden_dim, ))
+        self.params['b2'] = np.zeros(shape = (num_classes, ))
 
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -202,14 +203,36 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
+        
+        # W1.shape = (D, H1) = (input_dim, hidden_dim[0]) = (15, 20)
+        # W2.shape = (H1, H2) = (hidden_dim[0], hidden_dim[1]) = (20, 30)
+        # W3.shape = (H2, C) = (hidden_dim[1], num_classes) = (30, 10)
+        self.params['W1'] = np.random.normal(scale = weight_scale, size = (input_dim, hidden_dims[0]))
+        self.params['W2'] = np.random.normal(scale = weight_scale, size = (hidden_dims[0], hidden_dims[1]))
+        self.params['W3'] = np.random.normal(scale = weight_scale, size = (hidden_dims[1], num_classes))
 
-        dimensions = zip([input_dim, *hidden_dims], [*hidden_dims, num_classes])
-        for i, (in_dim, out_dim) in enumerate(dimensions):
-            self.params[f'W{i+1}'] = np.random.normal(loc=0.0, scale=weight_scale, size=(in_dim, out_dim))
-            self.params[f'b{i+1}'] = np.zeros(shape=(out_dim,))
-            if use_batchnorm and i < self.num_layers - 1:
-                self.params[f'gamma{i + 1}'] = np.ones(shape=(out_dim,))
-                self.params[f'beta{i + 1}'] = np.zeros(shape=(out_dim,))
+        # b1.shape = (H1, ) = (hidden_dims[0], ) = (20, )
+        # b2.shape = (H2, ) = (hidden_dims[1], ) = (30, )
+        # b2.shape = (C, ) = (num_classes, ) = (10, )
+        self.params['b1'] = np.zeros(shape = (hidden_dims[0], ))
+        self.params['b2'] = np.zeros(shape = (hidden_dims[1], ))
+        self.params['b3'] = np.zeros(shape = (num_classes, ))
+        
+        if use_batchnorm:
+            self.params['gamma1'] = np.ones(shape = (hidden_dims[0], ))
+            self.params['gamma2'] = np.ones(shape = (hidden_dims[1], ))
+
+            self.params['beta1'] = np.zeros(shape = (hidden_dims[0], ))
+            self.params['beta2'] = np.zeros(shape = (hidden_dims[1], ))
+
+        # dimensions = zip([input_dim, *hidden_dims], [*hidden_dims, num_classes])
+        # for i, (in_dim, out_dim) in enumerate(dimensions):
+        #     self.params[f'W{i+1}'] = np.random.normal(loc=0.0, scale=weight_scale, size=(in_dim, out_dim))
+        #     self.params[f'b{i+1}'] = np.zeros(shape=(out_dim,))
+        #     print(i, in_dim, out_dim)
+        #     if use_batchnorm and i < self.num_layers - 1:
+        #         self.params[f'gamma{i + 1}'] = np.ones(shape=(out_dim,))
+        #         self.params[f'beta{i + 1}'] = np.zeros(shape=(out_dim,))
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -266,23 +289,45 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        z = X
-        caches = []
-        for i in range(1, self.num_layers+1):
-            W, b = self.params[f'W{i}'], self.params[f'b{i}']
-            if i < self.num_layers:
-                z, cache = layer_utils.affine_relu_forward(x=z, w=W, b=b)
-                if self.use_dropout:
-                    z, do_cache = layers.dropout_forward(z, dropout_param=self.dropout_param)
-                    cache = (cache, do_cache)
-                if self.use_batchnorm:
-                    gamma, beta = self.params[f'gamma{i}'], self.params[f'beta{i}']
-                    z, bn_cache = layers.batchnorm_forward(x=z, gamma=gamma, beta=beta, bn_param=self.bn_params[i - 1])
-                    cache = (cache, bn_cache)
-            else:
-                z, cache = layers.affine_forward(x=z, w=W, b=b)
-            caches.append(cache)
-        scores = z
+        
+        # First layer
+        a1, fc1_cache = layers.affine_forward(x = X, w = self.params['W1'], b = self.params['b1'])
+        if self.use_batchnorm:
+            a1, fc1_bn_cache = layers.batchnorm_forward(x=a1, gamma=self.params['gamma1'],
+                                                    beta=self.params['beta1'], bn_param=self.bn_params[0])
+        a1, fc1_relu_cache = layers.relu_forward(x=a1)
+        if self.use_dropout:
+            a1, fc1_drop_cache = layers.dropout_forward(x=a1, dropout_param=self.dropout_param[0])
+        # Second layer
+        a2, fc2_cache = layers.affine_forward(x = a1, w = self.params['W2'], b = self.params['b2'])
+        if self.use_batchnorm:
+            a2, fc2_bn_cache = layers.batchnorm_forward(x=a2, gamma=self.params['gamma2'],
+                                                    beta=self.params['beta2'], bn_param=self.bn_params[1])
+        a2, fc2_relu_cache = layers.relu_forward(x=a2)
+        if self.use_dropout:
+            a2, fc2_drop_cache = layers.dropout_forward(x=a2, dropout_param=self.dropout_param[1])
+        # FC layer
+        z3, fc3_cache = layers.affine_forward(x=a2, w=self.params['W3'], b=self.params['b3'])
+
+        scores = z3
+        
+        # z = X
+        # caches = []
+        # for i in range(1, self.num_layers+1):
+        #     W, b = self.params[f'W{i}'], self.params[f'b{i}']
+        #     if i < self.num_layers:
+        #         z, cache = layer_utils.affine_relu_forward(x=z, w=W, b=b)
+        #         if self.use_dropout:
+        #             z, do_cache = layers.dropout_forward(z, dropout_param=self.dropout_param)
+        #             cache = (cache, do_cache)
+        #         if self.use_batchnorm:
+        #             gamma, beta = self.params[f'gamma{i}'], self.params[f'beta{i}']
+        #             z, bn_cache = layers.batchnorm_forward(x=z, gamma=gamma, beta=beta, bn_param=self.bn_params[i - 1])
+        #             cache = (cache, bn_cache)
+        #     else:
+        #         z, cache = layers.affine_forward(x=z, w=W, b=b)
+        #     caches.append(cache)
+        # scores = z
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -306,29 +351,55 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
+        
+        # dL/dz2. 상류에서 전달된 기울기
         loss, delta = layers.softmax_loss(x=scores, y=y)
-        penalty = 0.0
-        for i, cache in reversed(list(enumerate(caches, start=1))):
-            if i == self.num_layers:
-                delta, grads[f'W{i}'], grads[f'b{i}'] = layers.affine_backward(dout=delta, cache=cache)
-            else:
-                if self.use_batchnorm:
-                    cache, bn_cache = cache
-                    delta, grads[f'gamma{i}'], grads[f'beta{i}'] = layers.batchnorm_backward(dout=delta, cache=bn_cache)
+        # Second layer backpropagation
+        delta, grads['W3'], grads['b3'] = layers.affine_backward(dout=delta, cache=fc3_cache)
+        if self.use_dropout:
+            delta = layers.dropout_backward(dout=delta, cache=fc2_drop_cache)
+        delta = layers.relu_backward(dout=delta, cache=fc2_relu_cache)
+        if self.use_batchnorm:
+            delta
+        delta, grads['W2'], grads['b2'] = layers.affine_backward(dout=delta, cache=fc2_cache)
+        # First layer backpropagation
+        if self.use_dropout:
+            delta = layers.dropout_backward(dout=delta, cache=fc2_drop_cache)
+        delta = layers.relu_backward(dout=delta, cache=fc2_relu_cache)
+        delta, grads['W2'], grads['b2'] = layers.affine_backward(dout=delta, cache=fc2_cache)
 
-                if self.use_dropout:
-                    cache, do_cache = cache
-                    delta = layers.dropout_backward(dout=delta, cache=do_cache)
+        # Activation layer 역전파 계산
 
-                delta, grads[f'W{i}'], grads[f'b{i}'] = layer_utils.affine_relu_backward(dout=delta, cache=cache)
+        # L2 Regularization 적용
+
+        # regularization이 적용된 gradient update
 
 
-            # regularization
-            W = self.params[f'W{i}']
-            penalty += np.sum(np.square(W))
-            grads[f'W{i}'] += self.reg * W
 
-        loss = loss + self.reg * 0.5 * penalty
+
+        # loss, delta = layers.softmax_loss(x=scores, y=y)
+        # penalty = 0.0
+        # for i, cache in reversed(list(enumerate(caches, start=1))):
+        #     if i == self.num_layers:
+        #         delta, grads[f'W{i}'], grads[f'b{i}'] = layers.affine_backward(dout=delta, cache=cache)
+        #     else:
+        #         if self.use_batchnorm:
+        #             cache, bn_cache = cache
+        #             delta, grads[f'gamma{i}'], grads[f'beta{i}'] = layers.batchnorm_backward(dout=delta, cache=bn_cache)
+
+        #         if self.use_dropout:
+        #             cache, do_cache = cache
+        #             delta = layers.dropout_backward(dout=delta, cache=do_cache)
+
+        #         delta, grads[f'W{i}'], grads[f'b{i}'] = layer_utils.affine_relu_backward(dout=delta, cache=cache)
+
+
+        #     # regularization
+        #     W = self.params[f'W{i}']
+        #     penalty += np.sum(np.square(W))
+        #     grads[f'W{i}'] += self.reg * W
+
+        # loss = loss + self.reg * 0.5 * penalty
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
