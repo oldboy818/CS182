@@ -298,6 +298,7 @@ class FullyConnectedNet(object):
         a1, fc1_relu_cache = layers.relu_forward(x=a1)
         if self.use_dropout:
             a1, fc1_drop_cache = layers.dropout_forward(x=a1, dropout_param=self.dropout_param[0])
+        
         # Second layer
         a2, fc2_cache = layers.affine_forward(x = a1, w = self.params['W2'], b = self.params['b2'])
         if self.use_batchnorm:
@@ -306,6 +307,7 @@ class FullyConnectedNet(object):
         a2, fc2_relu_cache = layers.relu_forward(x=a2)
         if self.use_dropout:
             a2, fc2_drop_cache = layers.dropout_forward(x=a2, dropout_param=self.dropout_param[1])
+        
         # FC layer
         z3, fc3_cache = layers.affine_forward(x=a2, w=self.params['W3'], b=self.params['b3'])
 
@@ -354,28 +356,33 @@ class FullyConnectedNet(object):
         
         # dL/dz2. 상류에서 전달된 기울기
         loss, delta = layers.softmax_loss(x=scores, y=y)
+        
         # Second layer backpropagation
         delta, grads['W3'], grads['b3'] = layers.affine_backward(dout=delta, cache=fc3_cache)
         if self.use_dropout:
             delta = layers.dropout_backward(dout=delta, cache=fc2_drop_cache)
         delta = layers.relu_backward(dout=delta, cache=fc2_relu_cache)
         if self.use_batchnorm:
-            delta
+            delta, grads['gamma2'], grads['beta2'] = layers.batchnorm_backward(dout=delta, cache=fc2_bn_cache)
         delta, grads['W2'], grads['b2'] = layers.affine_backward(dout=delta, cache=fc2_cache)
+        
         # First layer backpropagation
         if self.use_dropout:
-            delta = layers.dropout_backward(dout=delta, cache=fc2_drop_cache)
-        delta = layers.relu_backward(dout=delta, cache=fc2_relu_cache)
-        delta, grads['W2'], grads['b2'] = layers.affine_backward(dout=delta, cache=fc2_cache)
-
-        # Activation layer 역전파 계산
+            delta = layers.dropout_backward(dout=delta, cache=fc1_drop_cache)
+        delta = layers.relu_backward(dout=delta, cache=fc1_relu_cache)
+        if self.use_batchnorm:
+            delta, grads['gamma1'], grads['beta1'] = layers.batchnorm_backward(dout=delta, cache=fc1_bn_cache)
+        delta, grads['W1'], grads['b1'] = layers.affine_backward(dout=delta, cache=fc1_cache)
 
         # L2 Regularization 적용
-
+        W1, W2, W3 = self.params['W1'], self.params['W2'], self.params['W3']
+        penalty = 0.5 * (np.sum(np.square(W1)) + np.sum(np.square(W2)) + np.sum(np.square(W3)))
+        loss += self.reg * penalty
+        
         # regularization이 적용된 gradient update
-
-
-
+        grads['W1'] += self.reg * W1
+        grads['W2'] += self.reg * W2
+        grads['W3'] += self.reg * W3
 
         # loss, delta = layers.softmax_loss(x=scores, y=y)
         # penalty = 0.0

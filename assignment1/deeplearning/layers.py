@@ -54,7 +54,7 @@ def affine_backward(dout, cache):
     # TODO: Implement the affine backward pass.                                 #
     #############################################################################
     x_row = x.reshape(x.shape[0], -1)
-    dx = np.dot(dout, w.T)
+    dx = np.dot(dout, w.T).reshape(x.shape)
     dw = np.dot(x_row.T, dout)
     db = np.sum(dout, axis = 0)
     #############################################################################
@@ -246,10 +246,24 @@ def batchnorm_backward(dout, cache):
     
     x, gamma, beta, eps, mean, var, x_hat, y = cache
     
+    # derivative with respect to parameter(gamma, beta)
+    dgamma = np.sum(dout * x_hat, axis = 0)
+    dbeta = np.sum(dout, axis = 0)
     
+    # derivative with respect to input(x)
+    dL_dxhat = dout * gamma
+    dxhat_dx = np.ones_like(x) / np.sqrt(var + eps)
+    dL_dvar = -0.5 * np.sum(dL_dxhat * (x - mean) * np.power(var + eps, -1.5))
+    dvar_dx = 2.0 * (x - mean) / x.shape[0]
+    dL_dmean = np.sum(dL_dxhat * -1 * dxhat_dx)
+    dmean_dx = np.ones_like(x) / x.shape[0]
+    
+    dx = dL_dxhat * dxhat_dx + dL_dmean * dmean_dx + dL_dvar * dvar_dx
+
     # x, gamma, beta, mu, var, xhat, out, epsilon = cache
     # dbeta = np.sum(dout, axis=0)
     # dgamma = np.sum(xhat * dout, axis=0)
+
     # dy_dxhat = gamma
     # dxhat_dx = np.ones_like(x) / np.sqrt(var + epsilon)
     # dxhat_dmu = -np.ones_like(x) / np.sqrt(var + epsilon)
@@ -362,7 +376,9 @@ def dropout_backward(dout, cache):
         ###########################################################################
         # TODO: Implement the training phase backward pass for inverted dropout.  #
         ###########################################################################
+        
         dx = dout * mask
+        
         ###########################################################################
         #                            END OF YOUR CODE                             #
         ###########################################################################
