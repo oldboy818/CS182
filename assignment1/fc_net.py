@@ -87,8 +87,6 @@ class TwoLayerNet(object):
         # TODO: Implement the forward pass for the two-layer net, computing the    #
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
-        # scores, fc1_relu_cache = layer_utils.affine_relu_forward(x=X, w=self.params['W1'], b=self.params['b1'])
-        # scores, fc2_cache = layers.affine_forward(x=scores, w=self.params['W2'], b=self.params['b2'])
 
         a1, fc1_ReLU_cache = layer_utils.affine_relu_forward(x = X, w = self.params['W1'], b = self.params['b1'])
         scores, fc2_cache = layers.affine_forward(x = a1, w = self.params['W2'], b = self.params['b2'])
@@ -129,15 +127,6 @@ class TwoLayerNet(object):
         grads['W1'] += self.reg * W1
         grads['W2'] += self.reg * W2
 
-        # loss, delta = layers.softmax_loss(x=scores, y=y)
-        # delta, grads['W2'], grads['b2']  = layers.affine_backward(dout=delta, cache=fc2_cache)
-        # delta, grads['W1'], grads['b1'] = layer_utils.affine_relu_backward(dout=delta, cache=fc1_relu_cache)
-        # # regularization
-        # W1, W2 = self.params['W1'], self.params['W2']
-        # penalty = (np.sum(np.square(W1)) + np.sum(np.square(W2))) * 0.5
-        # loss = loss + self.reg * penalty
-        # grads['W1'] += self.reg * W1
-        # grads['W2'] += self.reg * W2
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -225,14 +214,6 @@ class FullyConnectedNet(object):
             self.params['beta1'] = np.zeros(shape = (hidden_dims[0], ))
             self.params['beta2'] = np.zeros(shape = (hidden_dims[1], ))
 
-        # dimensions = zip([input_dim, *hidden_dims], [*hidden_dims, num_classes])
-        # for i, (in_dim, out_dim) in enumerate(dimensions):
-        #     self.params[f'W{i+1}'] = np.random.normal(loc=0.0, scale=weight_scale, size=(in_dim, out_dim))
-        #     self.params[f'b{i+1}'] = np.zeros(shape=(out_dim,))
-        #     print(i, in_dim, out_dim)
-        #     if use_batchnorm and i < self.num_layers - 1:
-        #         self.params[f'gamma{i + 1}'] = np.ones(shape=(out_dim,))
-        #         self.params[f'beta{i + 1}'] = np.zeros(shape=(out_dim,))
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -313,23 +294,6 @@ class FullyConnectedNet(object):
 
         scores = z3
         
-        # z = X
-        # caches = []
-        # for i in range(1, self.num_layers+1):
-        #     W, b = self.params[f'W{i}'], self.params[f'b{i}']
-        #     if i < self.num_layers:
-        #         z, cache = layer_utils.affine_relu_forward(x=z, w=W, b=b)
-        #         if self.use_dropout:
-        #             z, do_cache = layers.dropout_forward(z, dropout_param=self.dropout_param)
-        #             cache = (cache, do_cache)
-        #         if self.use_batchnorm:
-        #             gamma, beta = self.params[f'gamma{i}'], self.params[f'beta{i}']
-        #             z, bn_cache = layers.batchnorm_forward(x=z, gamma=gamma, beta=beta, bn_param=self.bn_params[i - 1])
-        #             cache = (cache, bn_cache)
-        #     else:
-        #         z, cache = layers.affine_forward(x=z, w=W, b=b)
-        #     caches.append(cache)
-        # scores = z
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -354,11 +318,11 @@ class FullyConnectedNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         
-        # dL/dz2. 상류에서 전달된 기울기
+        # Third layer backpropagation (Output layer)
         loss, delta = layers.softmax_loss(x=scores, y=y)
-        
-        # Second layer backpropagation
         delta, grads['W3'], grads['b3'] = layers.affine_backward(dout=delta, cache=fc3_cache)
+
+        # Second layer backpropagation
         if self.use_dropout:
             delta = layers.dropout_backward(dout=delta, cache=fc2_drop_cache)
         delta = layers.relu_backward(dout=delta, cache=fc2_relu_cache)
@@ -384,29 +348,6 @@ class FullyConnectedNet(object):
         grads['W2'] += self.reg * W2
         grads['W3'] += self.reg * W3
 
-        # loss, delta = layers.softmax_loss(x=scores, y=y)
-        # penalty = 0.0
-        # for i, cache in reversed(list(enumerate(caches, start=1))):
-        #     if i == self.num_layers:
-        #         delta, grads[f'W{i}'], grads[f'b{i}'] = layers.affine_backward(dout=delta, cache=cache)
-        #     else:
-        #         if self.use_batchnorm:
-        #             cache, bn_cache = cache
-        #             delta, grads[f'gamma{i}'], grads[f'beta{i}'] = layers.batchnorm_backward(dout=delta, cache=bn_cache)
-
-        #         if self.use_dropout:
-        #             cache, do_cache = cache
-        #             delta = layers.dropout_backward(dout=delta, cache=do_cache)
-
-        #         delta, grads[f'W{i}'], grads[f'b{i}'] = layer_utils.affine_relu_backward(dout=delta, cache=cache)
-
-
-        #     # regularization
-        #     W = self.params[f'W{i}']
-        #     penalty += np.sum(np.square(W))
-        #     grads[f'W{i}'] += self.reg * W
-
-        # loss = loss + self.reg * 0.5 * penalty
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################

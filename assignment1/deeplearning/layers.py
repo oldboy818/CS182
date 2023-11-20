@@ -122,7 +122,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     an exponential decay based on the momentum parameter:
 
     running_mean = momentum * running_mean + (1 - momentum) * sample_mean
-    running_var = momentum * running_var + (1 - momentum) * sample_var
+    running_var = momentum * running_var + (1 - momentum) * var
 
     Note that the batch normalization paper suggests a different test-time
     behavior: they compute sample mean and variance for each feature using a
@@ -175,7 +175,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         var = np.var(x, axis = 0)
 
         # update output
-        x_hat = (x - mean) / np.sqrt(var)
+        x_hat = (x - mean) / np.sqrt(var + eps)
         y = x_hat * gamma + beta
 
         running_mean = momentum * running_mean + (1 - momentum) * mean
@@ -184,14 +184,6 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         cache = (x, gamma, beta, eps, mean, var, x_hat, y)
         out = y
 
-        # mean = np.mean(x, axis=0)
-        # var = np.var(x, axis=0)
-        # xhat = (x - mean) / np.sqrt(var)
-        # y = gamma * xhat + beta
-        # running_mean = momentum * running_mean + (1 - momentum) * mean
-        # running_var = momentum * running_var + (1 - momentum) * var
-        # cache = (x, gamma, beta, mean, var, xhat, y, eps)
-        # out = y
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -204,9 +196,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #############################################################################
         
         # 학습과정에서 전체 데이터 셋에 대한 평균과 분산(running_mean/var)을 활용해 추론
-        out = ((x - running_mean) / np.sqrt(running_var)) * gamma + beta
+        out = ((x - running_mean) / np.sqrt(running_var + eps)) * gamma + beta
 
-        # out = gamma * (x - running_mean) / np.sqrt(running_var) + beta
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -252,29 +243,14 @@ def batchnorm_backward(dout, cache):
     
     # derivative with respect to input(x)
     dL_dxhat = dout * gamma
-    dxhat_dx = np.ones_like(x) / np.sqrt(var + eps)
-    dL_dvar = -0.5 * np.sum(dL_dxhat * (x - mean) * np.power(var + eps, -1.5))
+    dxhat_dx = 1. / np.sqrt(var + eps)
+    dL_dvar = -0.5 * np.sum(dL_dxhat * (x - mean) * np.power(var + eps, -1.5), axis=0)
     dvar_dx = 2.0 * (x - mean) / x.shape[0]
-    dL_dmean = np.sum(dL_dxhat * -1 * dxhat_dx)
-    dmean_dx = np.ones_like(x) / x.shape[0]
+    dL_dmean = np.sum(dL_dxhat * -1 * dxhat_dx, axis=0)
+    dmean_dx = 1. / x.shape[0]
     
     dx = dL_dxhat * dxhat_dx + dL_dmean * dmean_dx + dL_dvar * dvar_dx
 
-    # x, gamma, beta, mu, var, xhat, out, epsilon = cache
-    # dbeta = np.sum(dout, axis=0)
-    # dgamma = np.sum(xhat * dout, axis=0)
-
-    # dy_dxhat = gamma
-    # dxhat_dx = np.ones_like(x) / np.sqrt(var + epsilon)
-    # dxhat_dmu = -np.ones_like(x) / np.sqrt(var + epsilon)
-    # dxhat_dvar = (x -mu) * -0.5 * np.power(var + epsilon, -1.5)
-    # dmu_dx = np.ones_like(x) / x.shape[0]
-    # dvar_dx = 2.0 * (x - mu) / x.shape[0]
-    # dL_dxhat = dy_dxhat * dout
-    # dL_dmu = np.sum(dxhat_dmu * dL_dxhat, axis=0)
-    # dL_dvar = np.sum(dxhat_dvar * dL_dxhat, axis=0)
-    # dL_dx = dxhat_dx * dL_dxhat
-    # dx = dL_dx + dL_dmu * dmu_dx + dL_dvar * dvar_dx
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -304,7 +280,15 @@ def batchnorm_backward_alt(dout, cache):
     # should be able to compute gradients with respect to the inputs in a       #
     # single statement; our implementation fits on a single 80-character line.  #
     #############################################################################
-    pass
+    
+    N, D = dout.shape
+    x, gamma, beta, eps, mean, var, x_hat, y = cache
+
+    dx_hat, m, var_sqrt = dout * gamma, len(dout), np.sqrt(var + eps)
+    dx = (1. / (m * var_sqrt)) * (m * dx_hat - np.sum(dx_hat, axis=0) - x_hat * np.sum(dx_hat * x_hat, axis=0))
+    dgamma = np.sum(dout * x_hat, axis=0)
+    dbeta = np.sum(dout, axis=0)    
+    
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
