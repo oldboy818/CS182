@@ -17,7 +17,7 @@
 ### Assignment1 : Neural Networks & Backprop
 * Q1: Fully-connected Neural Network [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/FullyConnectedNets.ipynb)
 * Q2: Batch Normalization [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/BatchNormalization.ipynb)
-* Q3: Dropout
+* Q3: Dropout[__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/Dropout.ipynb)
 * Q4: ConvNet
 * Q5: Train a model on CIFAR10 using Pytorch!
 
