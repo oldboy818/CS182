@@ -329,7 +329,7 @@ def dropout_forward(x, dropout_param):
         # Store the dropout mask in the mask variable.                            #
         ###########################################################################
         
-        mask = np.random.rand(*x.shape) > p
+        mask = (np.random.rand(*x.shape) < p) / p
         out = x * mask
 
         ###########################################################################
@@ -400,24 +400,43 @@ def conv_forward_naive(x, w, b, conv_param):
     # Hint: you can use the function np.pad for padding.                        #
     #############################################################################
     
-    
-    
-    
-    
-    # stride, pad = conv_param['stride'], conv_param['pad']
-    # N, C_in, H_in, W_in = x.shape
-    # C_out, _, H_f, W_f = w.shape
-    # x_pad = np.pad(x, pad_width=((0, 0), (0, 0), (pad, pad), (pad, pad)))
-    # H_out = 1 + (H_in + 2 * pad - H_f) // stride
-    # W_out = 1 + (W_in + 2 * pad - W_f) // stride
-    # z = np.zeros(shape=(N, C_out, H_out, W_out))
+    stride, pad = conv_param['stride'], conv_param['pad']
+    N, C_in, H_in, W_in = x.shape
+    C_out, _, H_f, W_f = w.shape
 
-    # for i in range(H_out):
-    #     for j in range(W_out):
-    #         for f in range(C_out):
-    #             filtered = x_pad[..., i*stride:i*stride+H_f, j*stride:j*stride+W_f]
-    #             z[..., f, i, j] = np.sum(filtered * w[f], axis=(-1, -2, -3)) + b[f]
-    # out = z
+    # 패딩이 적용된 입력 데이터
+    # 예를 들어 x_shape=(2,3,4,4) --> pad=1일 때, x_pad.shape=(2,3,6,6)
+    x_pad = np.pad(x, pad_width=((0, 0), (0, 0), (pad, pad), (pad, pad)))  # 4-Dim zero-padding
+
+    # Resulting dimensions. 출력의 H, W
+    H_out = 1 + (H_in + 2 * pad - H_f) // stride
+    W_out = 1 + (W_in + 2 * pad - W_f) // stride
+
+    # Output
+    z = np.zeros(shape=(N, C_out, H_out, W_out))
+
+    for i in range(H_out):
+        for j in range(W_out):
+            for f in range(C_out):
+                field = x_pad[:, :, i * stride : i * stride + H_f, j * stride : j * stride + W_f]
+                # 입력 데이터에서 필터링할 특정 영역의 시작과 끝 인덱스를 계산
+                # 입력 데이터의 i번째 행과 j번째 열에 해당하는 영역을 선택하고, 
+                # 그 영역에서 필터의 높이(H_f)와 너비(W_f)에 해당하는 부분을 잘라내어 필터링을 수행
+                # 컨볼루션 연산에서는 이렇게 잘라낸 부분에 필터를 적용하여 출력 피처 맵의 각 요소를 계산                
+
+                z[:, f, i, j] = np.sum(field * w[f], axis=(-1, -2, -3)) + b[f]
+                # 출력 배열 z의 각 요소는 입력 배열 x에 대한 필터 w의 컨볼루션 연산 결과
+                # f는 필터의 인덱스, i와 j는 출력 배열의 위치
+                # np.sum(field * w[f], axis=(-1, -2, -3)): 
+                # 이 부분은 field라는 입력 배열의 일부와 필터 w[f]의 요소별(element-wise) 곱셈을 수행한 뒤, 결과 배열 전체에 대해 합을 구합니다. 
+                # 여기서 axis=(-1, -2, -3)는 가장 마지막 세 차원에 대해 합을 구하라는 것을 의미
+                # 이는 3차원 필터와 해당 영역의 입력 배열 간의 컨볼루션을 계산하기 위해 필요합니다.
+                
+                # + b[f]: 마지막으로, 필터 f에 해당하는 편향(bias)을 더합니다. 
+                # 이는 컨볼루션 연산 후에 각 필터 출력에 고정된 값을 더하는 것으로, 신경망의 학습 가능한 파라미터 중 하나입니다.
+
+    out = z
+
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -442,30 +461,43 @@ def conv_backward_naive(dout, cache):
     #############################################################################
     # TODO: Implement the convolutional backward pass.                          #
     #############################################################################
-    # x, w, b, conv_param = cache
-    # stride, pad = conv_param['stride'], conv_param['pad']
-    # x_pad = np.pad(x, pad_width=((0, 0), (0, 0), (pad, pad), (pad, pad)))
+    
+    x, w, b, conv_param = cache
+    stride, pad = conv_param['stride'], conv_param['pad']
 
-    # dw = np.zeros_like(w)
-    # dx = np.zeros_like(x)
-    # dx_pad = np.pad(dx, pad_width=((0, 0), (0, 0), (pad, pad), (pad, pad)))
-    # db = np.zeros_like(b)
+    # 패딩이 적용된 입력 데이터
+    # 예를 들어 x_shape=(2,3,4,4) --> pad=1일 때, x_pad.shape=(2,3,6,6)
+    x_pad = np.pad(x, pad_width=((0, 0), (0, 0), (pad, pad), (pad, pad)))
 
-    # N, C_in, H_in, W_in = x.shape
-    # C_out, _, H_f, W_f = w.shape
+    dx = np.zeros_like(x)
+    dx_pad = np.pad(dx, pad_width=((0, 0), (0, 0), (pad, pad), (pad, pad)))
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
 
-    # H_out = 1 + (H_in + 2 * pad - H_f) // stride
-    # W_out = 1 + (W_in + 2 * pad - W_f) // stride
+    N, C_in, H_in, W_in = x.shape
+    C_out, _, H_f, W_f = w.shape
 
-    # for i in range(H_out):
-    #     for j in range(W_out):
-    #         for f in range(C_out):
-    #             field = x_pad[..., i * stride: i * stride + H_f, j * stride: j * stride + W_f]
-    #             output = np.tile(dout[:, f, i, j], (*field.shape[1:], 1)).T
-    #             dw[f] += np.sum(field * output, axis=0)
-    #             dx_pad[..., i * stride: i * stride + H_f, j * stride: j * stride + W_f] += w[f] * output
-    # dx = dx_pad[..., pad:-pad, pad:-pad]
-    # db = np.sum(dout, axis=(0, 2, 3))
+    H_out = 1 + (H_in + 2 * pad - H_f) // stride
+    W_out = 1 + (W_in + 2 * pad - W_f) // stride
+
+    for i in range(H_out):
+        for j in range(W_out):
+            for f in range(C_out):
+                # 입력 데이터의 window
+                field = x_pad[:, :, i * stride: i * stride + H_f, j * stride: j * stride + W_f]
+                # Upstream derivate의 한 값으로 구성된 filter shape의 output
+                # field와 같은 형태로 반환. 이 값은 해당 필터에 의해 생성된 출력 데이터의 그래디언트
+                output = np.tile(dout[:, f, i, j], (*field.shape[1:], 1)).T
+                # 필터 'f'에 대한 그래디언트 계산. 입력 데이터의 영역(field)와 해당 출력 그래디언트(output)의 요소별 곱을 합산하여 누적
+                dw[f] += np.sum(field * output, axis=0)
+                # 입력 데이터(x)에 대한 그래디언트 계산. 필터(f)와 output의 요소별 곱을 해당 위치에 누적
+                dx_pad[:, :, i * stride: i * stride + H_f, j * stride: j * stride + W_f] += w[f] * output
+
+    # 적용된 패딩을 제거
+    dx = dx_pad[:, :, pad : -pad, pad : -pad]
+    # 편향 그래디언트 계산
+    db = np.sum(dout, axis=(0, 2, 3))
+
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -491,14 +523,20 @@ def max_pool_forward_naive(x, pool_param):
     #############################################################################
     # TODO: Implement the max pooling forward pass                              #
     #############################################################################
-    # height, width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
-    # N, C, H, W = x.shape
-    # H_out = (H - height) // stride + 1
-    # W_out = (W - width) // stride + 1
-    # out = np.zeros((N, C, H_out, W_out))
-    # for i in range(H_out):
-    #     for j in range(W_out):
-    #         out[..., i, j] = np.max(x[..., i * stride:i * stride + height, j * stride:j * stride + width], axis=(2,3))
+    
+    H_p, W_p, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    N, C_in, H_in, W_in = x.shape
+    
+    # 출력 layer의 shape
+    H_out = 1 + (H_in - H_p) // stride
+    W_out = 1 + (W_in - W_p) // stride
+    z = np.zeros(shape = (N, C_in, H_out, W_out))
+
+    for i in range(H_out):
+        for j in range(W_out):
+            z[:, :, i, j] = np.max(x[:, :, i*stride : i*stride + H_p,
+                                          j*stride : j*stride + W_p], axis=(2,3))
+    out = z
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -521,20 +559,32 @@ def max_pool_backward_naive(dout, cache):
     #############################################################################
     # TODO: Implement the max pooling backward pass                             #
     #############################################################################
-    # x, pool_param = cache
-    # height, width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
-    # N, C, H, W = x.shape
-    # H_out = (H - height) // stride + 1
-    # W_out = (W - width) // stride + 1
-    # dx = np.ones_like(x)
-    # for i in range(H_out):
-    #     for j in range(W_out):
-    #         window = x[..., i * stride:i * stride + height, j * stride:j * stride + width]
-    #         indices = np.arange(width*height).reshape((height, width))
-    #         indices = np.array([indices]*N*C).reshape((N, C, height, width))
-    #         argmax = np.argmax(window.reshape(N, C, -1), axis=2)
-    #         mask = argmax[:, :, None, None] == indices
-    #         dx[..., i * stride:i * stride + height, j * stride:j * stride + width] = dout[..., i, j, None, None] * mask
+    x, pool_param = cache
+    N, C, H, W = x.shape
+    H_p, W_p, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+
+    H_out = (H - H_p) // stride + 1
+    W_out = (W - W_p) // stride + 1
+
+    dx = np.zeros_like(x)
+
+    for n in range(N):
+        for c in range(C):
+            for h in range(H_out):
+                for w in range(W_out):
+                    # 각 윈도우(window)의 시작점을 찾기
+                    h_start = h * stride
+                    w_start = w * stride
+                    h_end = h_start + H_p
+                    w_end = w_start + W_p
+
+                    # 각 윈도우에서 최대값을 갖는 원소의 위치 찾기
+                    x_pooling = x[n, c, h_start:h_end, w_start:w_end]
+                    max_mask = x_pooling == np.max(x_pooling)
+
+                    # 최대값을 가진 위치에만 기울기 전달
+                    dx[n, c, h_start:h_end, w_start:w_end] += dout[n, c, h, w] * max_mask
+
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -572,10 +622,10 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # version of batch normalization defined above. Your implementation should  #
     # be very short; ours is less than five lines.                              #
     #############################################################################
-    # N, C, H, W = x.shape
-    # x = x.transpose(0, 3, 2, 1).reshape(-1, C)
-    # out, cache = batchnorm_forward(x, gamma, beta, bn_param)
-    # out = out.reshape(N, W, H, C).transpose(0, 3, 2, 1)
+    N, C, H, W = x.shape
+    x = x.transpose(0, 3, 2, 1).reshape(-1, C)
+    out, cache = batchnorm_forward(x, gamma, beta, bn_param)
+    out = out.reshape(N, W, H, C).transpose(0, 3, 2, 1)
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -605,10 +655,10 @@ def spatial_batchnorm_backward(dout, cache):
     # version of batch normalization defined above. Your implementation should  #
     # be very short; ours is less than five lines.                              #
     #############################################################################
-    # N, C, H, W = dout.shape
-    # dout = dout.transpose(0, 3, 2, 1).reshape(-1, C)
-    # dx, dgamma, dbeta = batchnorm_backward(dout, cache)
-    # dx = dx.reshape(N, W, H, C).transpose(0, 3, 2, 1)
+    N, C, H, W = dout.shape
+    dout = dout.transpose(0, 3, 2, 1).reshape(-1, C)
+    dx, dgamma, dbeta = batchnorm_backward(dout, cache)
+    dx = dx.reshape(N, W, H, C).transpose(0, 3, 2, 1)
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################

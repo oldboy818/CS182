@@ -43,22 +43,24 @@ class ThreeLayerConvNet(object):
         # TODO: Initialize weights and biases for the three-layer convolutional    #
         # network. Weights should be initialized from a Gaussian with standard     #
         # deviation equal to weight_scale; biases should be initialized to zero.   #
+        #                                                                          #
         # All weights and biases should be stored in the dictionary self.params.   #
         # Store weights and biases for the convolutional layer using the keys 'W1' #
         # and 'b1'; use keys 'W2' and 'b2' for the weights and biases of the       #
         # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
         # of the output affine layer.                                              #
         ############################################################################
-        
-        
-        
-        # self.params['W1'] = np.random.normal(scale=weight_scale, size=(num_filters, input_dim[0], filter_size, filter_size))
-        # self.params['b1'] = np.zeros((num_filters,))
-        # flattened_dim = np.prod(np.array(input_dim[1:]) // 2) * num_filters
-        # self.params['W2'] = np.random.normal(scale=weight_scale, size=(flattened_dim, hidden_dim))
-        # self.params['b2'] = np.zeros((hidden_dim,))
-        # self.params['W3'] = np.random.normal(scale=weight_scale, size=(hidden_dim, num_classes))
-        # self.params['b3'] = np.zeros((num_classes,))
+        self.params['W1'] = np.random.normal(scale=weight_scale, 
+                                             size=(num_filters, input_dim[0], filter_size, filter_size))
+        self.params['b1'] = np.zeros((num_filters,))
+
+        # conv-layer의 결과를 affine-layer에 전달하기 위해 평탄화
+        flattened_dim = np.prod(np.array(input_dim[1:]) // 2) * num_filters
+
+        self.params['W2'] = np.random.normal(scale=weight_scale, size=(flattened_dim, hidden_dim))
+        self.params['b2'] = np.zeros((hidden_dim,))
+        self.params['W3'] = np.random.normal(scale=weight_scale, size=(hidden_dim, num_classes))
+        self.params['b3'] = np.zeros((num_classes,))
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -89,12 +91,11 @@ class ThreeLayerConvNet(object):
         # computing the class scores for X and storing them in the scores          #
         # variable.                                                                #
         ############################################################################
-        
-        
-        # z, conv_cache = layer_utils.conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
-        # z, affine_relu_cache = layer_utils.affine_relu_forward(z, W2, b2)
-        # z, affine_cache = layers.affine_forward(z, W3, b3)
-        # scores = z
+        a1, conv_cache = layer_utils.conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+        a2, affine_relu_cache = layer_utils.affine_relu_forward(a1, W2, b2)
+        z, affine_cache = layers.affine_forward(a2, W3, b3)
+
+        scores = z
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -109,8 +110,20 @@ class ThreeLayerConvNet(object):
         # data loss using softmax, and make sure that grads[k] holds the gradients #
         # for self.params[k]. Don't forget to add L2 regularization!               #
         ############################################################################
-        
-        
+        loss, delta = layers.softmax_loss(scores, y)
+
+        delta, grads['W3'], grads['b3'] = layers.affine_backward(delta, affine_cache)
+        delta, grads['W2'], grads['b2'] = layer_utils.affine_relu_backward(delta, affine_relu_cache)
+        delta, grads['W1'], grads['b1'] = layer_utils.conv_relu_pool_backward(delta, conv_cache)
+
+        # L2 Regularization
+        penalty = 0.5 * (np.sum(np.square(W1)) + np.sum(np.square(W2)) + np.sum(np.square(W3)))
+        loss += self.reg * penalty
+
+        # Gradient update
+        grads['W1'] += self.reg * W1
+        grads['W2'] += self.reg * W2
+        grads['W3'] += self.reg * W3        
         
         # loss, delta = layers.softmax_loss(scores, y)
         # penalty = (np.sum(np.square(W1)) + np.sum(np.square(W2)) + np.sum(np.square(W3))) * 0.5

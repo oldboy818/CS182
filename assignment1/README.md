@@ -110,15 +110,8 @@ new layers that are commonly used in convolutional networks as well as implement
 a small convolutional network.
 
 ### Q5: Train a model on CIFAR10 using Pytorch! (10 points)
-Now that you've implemented and gained an understanding for many key components 
-of a basic deep learning library, it is time to move on to a modern deep learning
-library: Pytorch. Here, we will walk you through the key concepts of PyTorch, and
-you will use it to experiment and train a model on CIFAR10. We highly recommend 
-you use Google Colab (https://colab.research.google.com/) for this notebook, as it
-comes with Pytorch installed and provides access to GPUs.
+Now that you've implemented and gained an understanding for many key components of a basic deep learning library, it is time to move on to a modern deep learning library: Pytorch. Here, we will walk you through the key concepts of PyTorch, and you will use it to experiment and train a model on CIFAR10. We highly recommend you use Google Colab (https://colab.research.google.com/) for this notebook, as it comes with Pytorch installed and provides access to GPUs.
 
-If you use Colab for this notebook, make sure to manually download the completed 
-notebook and place it in the assignment directory before submitting. Also remember 
-to download required output file and place it into submission_logs/ directory.
+If you use Colab for this notebook, make sure to manually download the completed notebook and place it in the assignment directory before submitting. Also remember to download required output file and place it into submission_logs/ directory.
 
 
