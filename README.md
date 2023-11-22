@@ -18,7 +18,7 @@
 * Q1: Fully-connected Neural Network [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/FullyConnectedNets.ipynb)
 * Q2: Batch Normalization [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/BatchNormalization.ipynb)
 * Q3: Dropout [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/Dropout.ipynb)
-* Q4: ConvNet [__(On-going)__]
+* Q4: ConvNet [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/ConvolutionalNetworks.ipynb)
 * Q5: Train a model on CIFAR10 using Pytorch!
 
 ### Assignment2 : RNNs & Conv Nets
