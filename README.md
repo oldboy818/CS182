@@ -19,7 +19,7 @@
 * Q2: Batch Normalization [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/BatchNormalization.ipynb)
 * Q3: Dropout [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/Dropout.ipynb)
 * Q4: ConvNet [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment1/ConvolutionalNetworks.ipynb)
-* Q5: Train a model on CIFAR10 using Pytorch!
+* Q5: Train a model on CIFAR10 using Pytorch! [__(On-going)__](https://github.com/oldboy818/CS182/blob/main/assignment1/Pytorch.ipynb)
 
 ### Assignment2 : RNNs & Conv Nets
 * Q1: Image Captioning with Recurrent Neural Network
