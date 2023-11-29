@@ -156,18 +156,6 @@ def rnn_backward(dh, cache):
     # sequence of data. You should use the rnn_step_backward function that you   #
     # defined above. You can use a for loop to help compute the backward pass.   #
     ##############################################################################
-    # next_h, x, prev_h, Wx, Wh, b = cache
-
-    # # tanh의 derivative 형태는 (1 - tanh^2)
-    # # dnext_h는 decoder의 upstream derivative. shape = (N, H)
-    # dtanh = (1 - next_h ** 2) * dnext_h
-
-    # # derivative with respect to input(x, prev_h) and param(Wx, Wh), bias(b)
-    # dx = np.dot(dtanh, Wx.T)    # (N,H)(H,D) = (N,D)
-    # dprev_h = np.dot(dtanh, Wh.T)   # (N,H)(H,H) = (N,H)
-    # dWx = np.dot(x.T, dtanh)    # (D,N)(N,H) = (D,H)
-    # dWh = np.dot(prev_h.T, dtanh)   # (H,N)(N,H) = (H,H)
-    # db = np.sum(dtanh, axis=0)  # (H,)
 
     N, T, H = dh.shape
     # next_h, x, prev_h, Wx, Wh, b = cache 이므로 x.shape = (N,D)
@@ -179,48 +167,18 @@ def rnn_backward(dh, cache):
     dWh = np.zeros(shape=(H,H))
     db = np.zeros(shape=(H,))
 
-    # Upstream gradient of Loss of shape (N, H)
-    dl = np.zeros(shape=(N,H))
+    # Upstream gradient of hidden_state at timestep t+1, shape (N, H)
+    dprev_h = np.zeros_like(dh0)
 
     for t in reversed(range(T)):
-        
+        dnext_h = dh[:, t, :] + dprev_h
+        dx_t, dprev_h, dWx_t, dWh_t, db_t = rnn_step_backward(dnext_h, cache[t])
+        dx[:, t, :] += dx_t
+        dWx += dWx_t
+        dWh += dWh_t
+        db += db_t
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    # N, T, H = dh.shape
-    # _, D = cache[0][1].shape
-
-    # dx = np.zeros((N,T,D))
-    # dh0 = np.zeros((N,H))
-    # dWx = np.zeros((D,H))
-    # dWh = np.zeros((H,H))
-    # db = np.zeros((H,))
-
-    # dh_t = np.zeros((N,H))
-
-    # for t in reversed(range(T)):
-    #     # dh (input) is the gradient of the individual losses
-    #     # each layer has 2 computational descendants because total loss is sum of individual losses
-    #     # therefore, sum rule, sum the two partial derivatives: individual, plus that flowing from next_h
-    #     dnext_h = dh_t + dh[:,t,:]
-    #     dx_t, dh_t, dWx_t, dWh_t, db_t = rnn_step_backward(dnext_h, cache[t])
-    #     dx[:,t,:] = dx_t
-    #     dWx += dWx_t
-    #     dWh += dWh_t
-    #     db += db_t
-    # dh0 = dh_t
+    dh0 = dprev_h
     
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -249,9 +207,13 @@ def word_embedding_forward(x, W):
     #                                                                            #
     # HINT: This can be done in one line using NumPy's array indexing.           #
     ##############################################################################
-    # this uses https://numpy.org/doc/stable/user/basics.indexing.html#advanced-indexing
+    
+    # 배열 인덱싱. 입력 단어 인덱스에 해당하는 단어 벡터를 선택. shape (N, T, D)
+    # W[x]는 (V,D)에서 (N,T,D)로 확장
     out = W[x]
+
     cache = (x, W)
+
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -280,16 +242,21 @@ def word_embedding_backward(dout, cache):
     # Note that Words can appear more than once in a sequence.                   #
     # HINT: Look up the function np.add.at                                       #
     ##############################################################################
+    
     x, W = cache
 
-    dW = np.zeros(W.shape)
-    # index into dW at positions x, and add dout. 
-    # see https://numpy.org/doc/stable/reference/generated/numpy.ufunc.at.html
-    # this method is equivalent to a[indices] += b, except that results are accumulated for elements that are indexed more than once
-    # dW[x] expands from (V,D) to a (N,T,D) matrix, keeps track of underlying indices, adds dout to each of those, and then collapses
-    # back to (V,D) by summing up for across the V indices and across N.
-    # this is definitely some sort of numpy magic.
+    # shape (V, D). V는 어휘의 크기 혹은 어휘집을 의미. D는 단어 임벡터 벡터의 차원
+    dW = np.zeros_like(W)
+
+    # x shape (N,T)이고 dout shape (N,T,D)
     np.add.at(dW, x, dout)
+    
+    '''
+    dW의 shape은 변하지 않으나, dW[x]는 (V,D)에서 (N,T,D)로 확장된다.
+    결과적으로 dW의 각 행(V, 단어에 해당)에 대한 열(D, 임베딩 차원)의 값은 해당 단어에 대한
+    그레디언트를 반영하고 업데이트된 임베딩 벡터를 나타낸다.
+    '''
+
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -553,8 +520,11 @@ def temporal_affine_forward(x, w, b):
     - out: Output data of shape (N, T, M)
     - cache: Values needed for the backward pass
     """
+    
     N, T, D = x.shape
     M = b.shape[0]
+
+    # N개의 문장, T개의 시퀀스를 합쳐서 연산
     out = x.reshape(N * T, D).dot(w).reshape(N, T, M) + b
     cache = x, w, b, out
     return out, cache
@@ -574,6 +544,7 @@ def temporal_affine_backward(dout, cache):
     - db: Gradient of biases, of shape (M,)
     """
     x, w, b, out = cache
+
     N, T, D = x.shape
     M = b.shape[0]
 
@@ -617,9 +588,15 @@ def temporal_softmax_loss(x, y, mask, verbose=False):
     y_flat = y.reshape(N * T)
     mask_flat = mask.reshape(N * T)
 
+    # softmax 함수로 loss
+    # 지수 연산의 수치 안정성을 위해 최대값을 빼준다
     probs = np.exp(x_flat - np.max(x_flat, axis=1, keepdims=True))
+    # 정규화하여 각 클래스에 대한 확률값을 구한다
     probs /= np.sum(probs, axis=1, keepdims=True)
+    # Negative log-likelihood loss
     loss = -np.sum(mask_flat * np.log(probs[np.arange(N * T), y_flat])) / N
+
+    # loss func에 대한 gradient를 입력 데이터에 대한 gradient로 변환하여 가중치 업데이트
     dx_flat = probs.copy()
     dx_flat[np.arange(N * T), y_flat] -= 1
     dx_flat /= N
