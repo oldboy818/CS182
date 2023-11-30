@@ -99,20 +99,15 @@ it really is just a particularly unlucky seed..
 
 
 ## Q1: Image Captioning with Recurrent Neural Network (34 points)
-The IPython notebook `RNN_Captioning.ipynb` will introduce you to the implementation
-of vanilla recurrent neural networks for image captioning. Follow the instructions
-in the notebook to complete this part.
+The IPython notebook `RNN_Captioning.ipynb` will introduce you to the implementation of vanilla recurrent neural networks for image captioning. Follow the instructions in the notebook to complete this part.
 
 
 ## Q2: Image Captioning with LSTM (25 points)
-The IPython notebook `LSTM_Captioning.ipynb` will introduce you to the implementation
-of LSTM for image captioning. Follow the instructions in the notebook to complete this part.
+The IPython notebook `LSTM_Captioning.ipynb` will introduce you to the implementation of LSTM for image captioning. Follow the instructions in the notebook to complete this part.
 
 
 ## Q3: Network Visualization (18 points)
-The IPython notebook `NetworkVisualization.ipynb` will introduce you to various techniques
-for visualizing neural network internals. Follow the instructions in the notebook to complete this part.
-We will use PyTorch for this part.
+The IPython notebook `NetworkVisualization.ipynb` will introduce you to various techniques for visualizing neural network internals. Follow the instructions in the notebook to complete this part. We will use PyTorch for this part.
 
 ## Q4: Style Transfer (23 points)
 The IPython notebook `StyleTransfer.ipynb` will introduce you to image style transfer.

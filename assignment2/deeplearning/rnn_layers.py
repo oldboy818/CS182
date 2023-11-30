@@ -109,10 +109,6 @@ def rnn_forward(x, h0, Wx, Wh, b):
     # input data. You should use the rnn_step_forward function that you defined  #
     # above. You can use a for loop to help compute the forward pass.            #
     ##############################################################################
-    
-    # # each step(each layer)에서 다음 연산을 계산
-    # next_h = np.tanh(np.dot(prev_h, Wh) + np.dot(x, Wx) + b)
-    # cache = (next_h, x, prev_h, Wx, Wh, b)
 
     N, T, D = x.shape
     _, H = h0.shape
@@ -251,11 +247,9 @@ def word_embedding_backward(dout, cache):
     # x shape (N,T)이고 dout shape (N,T,D)
     np.add.at(dW, x, dout)
     
-    '''
-    dW의 shape은 변하지 않으나, dW[x]는 (V,D)에서 (N,T,D)로 확장된다.
-    결과적으로 dW의 각 행(V, 단어에 해당)에 대한 열(D, 임베딩 차원)의 값은 해당 단어에 대한
-    그레디언트를 반영하고 업데이트된 임베딩 벡터를 나타낸다.
-    '''
+    # dW의 shape은 변하지 않으나, dW[x]는 (V,D)에서 (N,T,D)로 확장된다.
+    # 결과적으로 dW의 각 행(V, 단어에 해당)에 대한 열(D, 임베딩 차원)의 값은 해당 단어에 대한
+    # 그레디언트를 반영하고 업데이트된 임베딩 벡터를 나타낸다.
 
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -302,30 +296,30 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     # TODO: Implement the forward pass for a single timestep of an LSTM.        #
     # You may want to use the numerically stable sigmoid implementation above.  #
     #############################################################################
-    N, H = prev_h.shape
+    # N, H = prev_h.shape
     
-    # compute a = [a_i, a_f, a_o, a_g]
-    # A = X_t W_x + H_{t-1} Wh + b
-    A = x.dot(Wx) + prev_h.dot(Wh) + b
+    # # compute a = [a_i, a_f, a_o, a_g]
+    # # A = X_t W_x + H_{t-1} Wh + b
+    # A = x.dot(Wx) + prev_h.dot(Wh) + b
 
-    # split up the dim 4H output
-    A_i = A[:, 0:H]
-    A_f = A[:, H:2*H]
-    A_o = A[:, 2*H:3*H]
-    A_g = A[:, 3*H:4*H]
+    # # split up the dim 4H output
+    # A_i = A[:, 0:H]
+    # A_f = A[:, H:2*H]
+    # A_o = A[:, 2*H:3*H]
+    # A_g = A[:, 3*H:4*H]
 
-    i = sigmoid(A_i)
-    f = sigmoid(A_f)
-    o = sigmoid(A_o)
-    g = np.tanh(A_g)
+    # i = sigmoid(A_i)
+    # f = sigmoid(A_f)
+    # o = sigmoid(A_o)
+    # g = np.tanh(A_g)
 
-    # next cell state c
-    next_c = f * prev_c + i * g
+    # # next cell state c
+    # next_c = f * prev_c + i * g
 
-    # next hidden state
-    next_h = o * np.tanh(next_c)
+    # # next hidden state
+    # next_h = o * np.tanh(next_c)
 
-    cache = x, prev_h, prev_c, Wx, Wh, b, i, f, o, g, next_c, next_h
+    # cache = x, prev_h, prev_c, Wx, Wh, b, i, f, o, g, next_c, next_h
     
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -359,38 +353,38 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     # the output value from the nonlinearity.                                   #
     #############################################################################
 
-    x, prev_h, prev_c, Wx, Wh, b, i, f, o, g, next_c, next_h = cache
+    # x, prev_h, prev_c, Wx, Wh, b, i, f, o, g, next_c, next_h = cache
     
-    # so, not even going to attempt this analytically - let's compute using backprop across
-    # the computational graph shown in the lecture slide.
+    # # so, not even going to attempt this analytically - let's compute using backprop across
+    # # the computational graph shown in the lecture slide.
 
-    # next_c gets derivative direct and through next_h
-    # deriv of tanh(x) is 1-tanh^2(x)
-    do = np.tanh(next_c) * dnext_h
-    dnext_c_2 = o * (1 - np.tanh(next_c)**2) * dnext_h
-    dnext_c += dnext_c_2
+    # # next_c gets derivative direct and through next_h
+    # # deriv of tanh(x) is 1-tanh^2(x)
+    # do = np.tanh(next_c) * dnext_h
+    # dnext_c_2 = o * (1 - np.tanh(next_c)**2) * dnext_h
+    # dnext_c += dnext_c_2
     
-    dprev_c = f * dnext_c
-    df = prev_c * dnext_c
+    # dprev_c = f * dnext_c
+    # df = prev_c * dnext_c
 
-    di = g * dnext_c
-    dg = i * dnext_c
+    # di = g * dnext_c
+    # dg = i * dnext_c
 
-    # deriv of sigmoid(x) is sigmoid(x) * (1 - sigmoid(x))
-    dA_f = f * (1-f) * df
-    dA_i = i * (1-i) * di
-    dA_o = o * (1-o) * do
-    dA_g = (1 - g**2) * dg
+    # # deriv of sigmoid(x) is sigmoid(x) * (1 - sigmoid(x))
+    # dA_f = f * (1-f) * df
+    # dA_i = i * (1-i) * di
+    # dA_o = o * (1-o) * do
+    # dA_g = (1 - g**2) * dg
 
-    # concat back in same order as split
-    dA = np.concatenate((dA_i, dA_f, dA_o, dA_g), axis=1)
+    # # concat back in same order as split
+    # dA = np.concatenate((dA_i, dA_f, dA_o, dA_g), axis=1)
 
-    # A = X_t W_x + H_{t-1} Wh + b
-    dWx = x.T.dot(dA) 
-    dx = dA.dot(Wx.T)
-    dWh = prev_h.T.dot(dA)
-    dprev_h = dA.dot(Wh.T)
-    db = dA.sum(axis=0)
+    # # A = X_t W_x + H_{t-1} Wh + b
+    # dWx = x.T.dot(dA) 
+    # dx = dA.dot(Wx.T)
+    # dWh = prev_h.T.dot(dA)
+    # dprev_h = dA.dot(Wh.T)
+    # db = dA.sum(axis=0)
     
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -427,20 +421,20 @@ def lstm_forward(x, h0, Wx, Wh, b):
     # You should use the lstm_step_forward function that you just defined.      #
     #############################################################################
 
-    N, T, D = x.shape
-    _, H = h0.shape
-    c0 = np.zeros((N, H))
-    h = np.zeros((N, T, H))
-    caches = []
+    # N, T, D = x.shape
+    # _, H = h0.shape
+    # c0 = np.zeros((N, H))
+    # h = np.zeros((N, T, H))
+    # caches = []
 
-    for t in range(T):
-        if t == 0:
-            next_c = c0
-            next_h = h0
-        # next_h, cache = rnn_step_forward(x[:,t,:], next_h, Wx, Wh, b)
-        next_h, next_c, cache = lstm_step_forward(x[:,t,:], next_h, next_c, Wx, Wh, b)
-        h[:, t, :] = next_h
-        caches.append(cache)
+    # for t in range(T):
+    #     if t == 0:
+    #         next_c = c0
+    #         next_h = h0
+    #     # next_h, cache = rnn_step_forward(x[:,t,:], next_h, Wx, Wh, b)
+    #     next_h, next_c, cache = lstm_step_forward(x[:,t,:], next_h, next_c, Wx, Wh, b)
+    #     h[:, t, :] = next_h
+    #     caches.append(cache)
     
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -470,32 +464,32 @@ def lstm_backward(dh, cache):
     # You should use the lstm_step_backward function that you just defined.     #
     #############################################################################
 
-    N, T, H = dh.shape
-    # pluck first x to get shape
-    _, D = cache[0][0].shape
+    # N, T, H = dh.shape
+    # # pluck first x to get shape
+    # _, D = cache[0][0].shape
 
-    dx  = np.zeros((N,T,D))
-    dh0 = np.zeros((N,H))
-    dWx = np.zeros((D,4*H))
-    dWh = np.zeros((H,4*H))
-    db  = np.zeros((4*H,))
+    # dx  = np.zeros((N,T,D))
+    # dh0 = np.zeros((N,H))
+    # dWx = np.zeros((D,4*H))
+    # dWh = np.zeros((H,4*H))
+    # db  = np.zeros((4*H,))
 
-    dh_t = np.zeros((N,H))
+    # dh_t = np.zeros((N,H))
 
-    # initial dc is zero - Loss does not depend on c
-    dc_t = np.zeros((N,H))
+    # # initial dc is zero - Loss does not depend on c
+    # dc_t = np.zeros((N,H))
 
-    for t in reversed(range(T)):
-        # just like as in vanilla RNN, dh (input) is the gradient of the individual losses
-        # each layer has 2 computational descendants because total loss is sum of individual losses
-        # therefore, sum rule, sum the two partial derivatives: individual, plus that flowing from next_h
-        dnext_h = dh_t + dh[:,t,:]
-        dx_t, dh_t, dc_t, dWx_t, dWh_t, db_t = lstm_step_backward(dnext_h, dc_t, cache[t])
-        dx[:,t,:] = dx_t
-        dWx += dWx_t
-        dWh += dWh_t
-        db += db_t
-    dh0 = dh_t
+    # for t in reversed(range(T)):
+    #     # just like as in vanilla RNN, dh (input) is the gradient of the individual losses
+    #     # each layer has 2 computational descendants because total loss is sum of individual losses
+    #     # therefore, sum rule, sum the two partial derivatives: individual, plus that flowing from next_h
+    #     dnext_h = dh_t + dh[:,t,:]
+    #     dx_t, dh_t, dc_t, dWx_t, dWh_t, db_t = lstm_step_backward(dnext_h, dc_t, cache[t])
+    #     dx[:,t,:] = dx_t
+    #     dWx += dWx_t
+    #     dWh += dWh_t
+    #     db += db_t
+    # dh0 = dh_t
     
     ##############################################################################
     #                               END OF YOUR CODE                             #

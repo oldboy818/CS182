@@ -137,41 +137,52 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        caches = {}
         
-        # (1) Use an affine transformation to compute the initial hidden state
+        caches = {}
+        # (1) Use an affine transformation to compute the initial hidden state     
         #     from the image features. This should produce an array of shape (N, H)
+        
+        # input image feature인 features(N,D)를 이용해서 H_0을 구해라. W_proj (D,H), b_proj (H,)
         h0, caches['h0'] = affine_forward(features, W_proj, b_proj)
 
         # (2) Use a word embedding layer to transform the words in captions_in
         #     from indices to vectors, giving an array of shape (N, T, W).
+
+        # caption_in (N, T-1) W_embed (V, W) 따라서 embed shape (N,T,W)
         embed, caches['embed'] = word_embedding_forward(captions_in, W_embed)
 
         # (3) Use either a vanilla RNN or LSTM (depending on self.cell_type) to
         #     process the sequence of input word vectors and produce hidden state
         #     vectors for all timesteps, producing an array of shape (N, T, H). 
         if self.cell_type == 'rnn':
-            h, caches['rnn'] = rnn_forward(embed, h0, Wx, Wh, b)
-        else:
-            # otherwise, self.cell_type == 'lstm'
-            h, caches['lstm'] = lstm_forward(embed, h0, Wx, Wh, b)
+            h, caches['h'] = rnn_forward(embed, h0, Wx, Wh, b)
+        else:   # LSTM
+            h, caches['h'] = lstm_forward(embed, h0, Wx, Wh, b)
 
         # (4) Use a (temporal) affine transformation to compute scores over the
         #     vocabulary at every timestep using the hidden states, giving an
-        #     array of shape (N, T, V).
-        scores, caches['affine'] = temporal_affine_forward(h, W_vocab, b_vocab)
+        #     array of shape (N, T, V). 
+        scores, caches['fc'] = temporal_affine_forward(h, W_vocab, b_vocab)
 
         # (5) Use (temporal) softmax to compute loss using captions_out, ignoring
-        #     the points where the output word is <NULL> using the mask above.
-        loss, dout = temporal_softmax_loss(scores, captions_out, mask, verbose=False)
+        #     the points where the output word is <NULL> using the mask above.   
+        loss, dout = temporal_softmax_loss(scores, captions_out, mask)
 
-        # BACKWARD PASS
-        dh, grads['W_vocab'], grads['b_vocab'] = temporal_affine_backward(dout, caches['affine'])
+        # Backward pass processing
+
+        # FC layer에 대한 backward pass. 
+        dh, grads['W_vocab'], grads['b_vocab'] = temporal_affine_backward(dout, caches['fc'])
+        
+        # RNN (input: x, h0 / param: Wx, Wh, b)에 대한 backward pass
         if self.cell_type == 'rnn':
-            dx, dh0, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(dh, caches['rnn'])
-        else: # lstm
-            dx, dh0, grads['Wx'], grads['Wh'], grads['b'] = lstm_backward(dh, caches['lstm'])
+            dx, dh0, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(dh, caches['h'])
+        else: # 'LSTM'
+            dx, dh0, grads['Wx'], grads['Wh'], grads['b'] = lstm_backward(dh, caches['h'])
+
+        # word embeding에 대한 backward pass
         grads['W_embed'] = word_embedding_backward(dx, caches['embed'])
+
+        # affine layer(image feature - h0)에 대한 backward pass
         dx, grads['W_proj'], grads['b_proj'] = affine_backward(dh0, caches['h0'])
         
         ############################################################################
@@ -236,26 +247,53 @@ class CaptioningRNN(object):
         # a loop.                                                                 #
         ###########################################################################
 
-        # get h0
+        # image feature에서 h0 추출
         h, _ = affine_forward(features, W_proj, b_proj)
-        # set c0 - only used if LSTM
-        c = np.zeros(h.shape)
+        # the first word로 <START> token
+        word = self._start
 
-        # embed the <START> token index to get x0
-        x_word = self._start
-
-        for i in range(max_length):
-            x, _ = word_embedding_forward(x_word, W_embed)
-
+        for t in range(max_length):
+            # (1) Embed the previous word using the learned word embeddings
+            x_embed, _ = word_embedding_forward(word, W_embed)
+            
+            # (2) Make an RNN step using the previous hidden state and the embedded
+            #     current word to get the next hidden state.
             if self.cell_type == 'rnn':
-                h, _ = rnn_step_forward(x, h, Wx, Wh, b)
-            else: # lstm
-                h, c, _ = lstm_step_forward(x, h, c, Wx, Wh, b)
+                h, _ = rnn_step_forward(x_embed, h, Wx, Wh, b)
+            else: # LSTM
+                h, _ = lstm_step_forward(x_embed, h, Wx, Wh, b)
 
+            # (3) Apply the learned affine transformation to the next hidden state to
+            #     get scores for all words in the vocabulary
             scores, _ = affine_forward(h, W_vocab, b_vocab)
+            
+            # (4) Select the word with the highest score as the next word, writing it
+            #     to the appropriate slot in the captions variable 
+            word = scores.argmax(axis=1)
 
-            x_word = scores.argmax(axis=1)
-            captions[:,i] = x_word
+            captions[:, t] = word
+
+
+        # # get h0
+        # h, _ = affine_forward(features, W_proj, b_proj)
+        # # set c0 - only used if LSTM
+        # c = np.zeros(h.shape)
+
+        # # embed the <START> token index to get x0
+        # x_word = self._start
+
+        # for i in range(max_length):
+        #     x, _ = word_embedding_forward(x_word, W_embed)
+
+        #     if self.cell_type == 'rnn':
+        #         h, _ = rnn_step_forward(x, h, Wx, Wh, b)
+        #     else: # lstm
+        #         h, c, _ = lstm_step_forward(x, h, c, Wx, Wh, b)
+
+        #     scores, _ = affine_forward(h, W_vocab, b_vocab)
+
+        #     x_word = scores.argmax(axis=1)
+        #     captions[:,i] = x_word
             
         ############################################################################
         #                             END OF YOUR CODE                             #
