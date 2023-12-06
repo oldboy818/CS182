@@ -23,7 +23,7 @@
 
 ### Assignment2 : RNNs & Conv Nets
 * Q1: Image Captioning with Recurrent Neural Network [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment2/RNN_Captioning.ipynb)
-* Q2: Image Captioning with LSTM
+* Q2: Image Captioning with LSTM [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment2/LSTM_Captioning.ipynb)
 * Q3: Network Visualization
 * Q4: Style Transfer
 
