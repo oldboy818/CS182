@@ -24,6 +24,7 @@ def compute_saliency_maps(X, y, model):
 
     # Construct new tensor that requires gradient computation
     X = X.clone().detach().requires_grad_(True)
+
     saliency = None
     ##############################################################################
     # TODO: Implement this function. Perform a forward and backward pass through #
@@ -32,14 +33,39 @@ def compute_saliency_maps(X, y, model):
     # scores, and then compute the gradients with torch.autograd.grad.           #
     ##############################################################################
 
-    y_pred = model(X)
-    # sum the unnormalized scores to a scalar
-    unnorm_scores = y_pred.gather(1, y.view(-1, 1)).squeeze().sum()
-    gradients = torch.autograd.grad(unnorm_scores, X)[0]
+    # compute the gradient of the unnormalized score corresponding to the correct class
+    # (which is a scalar) with respect to the pixels of the image
+    # Forward pass to compute the scores and loss
+    scores = model(X)
+    scores = scores.gather(1, y.view(-1, 1)).squeeze()
+                # scores 텐서에서 특정 인덱스에 위치한 값을 선택. 실제 레이블(y)
+                # gather(1, ...): 1은 차원을 의미
+                # y.view(-1, 1): y 텐서 (N,) 형태. 이를 (N,1) 형태로 재구성
+                # squeeze(): 크기가 1인 차원을 제거. (N,1)을 (N,)으로 재구성
 
-    # To compute the saliency map, we take the absolute value of this gradient, 
-    # then take the maximum value over the 3 input channels
-    saliency, _ = gradients.abs().max(dim=1)
+    # Backward pass to compute the gradient of the correct class score 
+    # with respect to each input image
+    model.zero_grad()   # 모델의 모든 parameter에 대해 누적된 gradient를 0으로 초기화
+    scores.backward(torch.ones_like(scores))    
+                # 'scores' 텐서에 대한 gradient 계산
+                # 각 입력 텐서에 대한 gradient를 누적 합
+                # torch.ones_like(scores): 역전파를 시작하는 데 필요한 gradient 초기값
+    # 일반적으로 손실함수에서 backward()를 호출할 때, 손실이 스칼라 값이기 때문에 인자가 없지만,
+    # 'scores'와 같이 스칼라가 아닌 경우 gradient 초기값을 명시적으로 제시해야 함.
+    # 단, 샐리언스 맵을 계산할 때는 각 클래스 점수에 대한 gradient를 계산하는 것이 목적이므로,
+    # 각 점수의 변화가 입력 이미지에 어떻게 영향을 미치는 지를 파악.
+
+    # To compute the saliency map, take the absolute value of this gradient,
+    # then take the maximum value over the 3 input channels. shape (H, W)
+    saliency, _ = torch.max(X.grad.data.abs(), dim=1)
+                # X.grad: scores.backward() 함수에서 계산된 입력 텐서 X에 대한 gradient
+                # .data: gradient 텐서의 데이터 부분에 접근. gradient 자체의 값
+                # .abs(): gradient의 절대값 계산. 즉, gradient 크기
+                
+                # torch.max(..., dim=1): 
+                            # 텐서의 최대값과 인덱스 반환.
+                            # 'dim=1'은 최대값을 계산할 차원. 입력 텐서 X가 (N,C,H,W)일 때,
+                            # C차원에 대해 최대값을 계산. 즉, 모든 채널의 각 픽셀 위치에서 최대값
     
     ##############################################################################
     #                             END OF YOUR CODE                               #
@@ -79,24 +105,34 @@ def make_fooling_image(X, target_y, model):
     # You can print your progress over iterations to check your algorithm.       #
     ##############################################################################
 
+    # gradient ascent를 이용해 X_fooling 이미지를 조금씩 조정하여,
+    # 모델이 이 이미지를 target_y 클래스로 분류하도록 유도하는 것이 목표
     for i in range(100):
-        y_pred = model(X_fooling)
-        y_pred_idx = y_pred.argmax()
-        if y_pred_idx == target_y:
-            print(f'stopping early at training step {i}')
+        scores = model(X_fooling)
+
+        # 이미지가 fooling image와 같아질 때 stop
+        if scores.argmax(1).item() == target_y:
             break
-            
-        # loss function is the score of our desired class
-        score = y_pred[0, target_y]
-        # could instead call score.backward() here, and then access the X_fooling.grad parameter
-        grad = torch.autograd.grad(score, X_fooling)[0]
 
-        dX = learning_rate * grad / grad.norm()
+        # The score of the target class
+        target_scores = scores[0, target_y]
+                # scores[0, ...]: 첫 번째 차원에서 0번째 요소. N=1이므로, 첫번째 사진
+                # 모델이 X_fooling을 target_y 클래스로 분류했을 때의 점수
+        
+        # Perform gradient ascent on the score
+        model.zero_grad()           # Initialize gradient
+        target_scores.backward()    # target_scores에 대한 gradient 계산
+                                    # X_fooling 이미지를 어떻게 변경해야 target_y 클래스의 점수를
+                                    # 증가시킬 수 있는지를 알려준다
+        gradient = X_fooling.grad.data
 
-        # now ADD the gradient to get closer to target_y!
-        with torch.no_grad():
-            X_fooling += dX
-            # X_fooling.grad.zero_()
+        # Normalize the gradient and update the fooling image
+        dX = learning_rate * gradient / gradient.norm() # 정규화
+        X_fooling.data += dX    # 정규화된 gradient(dX)를 update하여 target_y 클래스로 분류하도록
+        X_fooling.grad.data.zero_() # gradient 초기화
+
+        # 진행 상황 출력
+        print(f"반복 {i + 1}, 목표 점수: {target_scores.item()}")
 
     ##############################################################################
     #                             END OF YOUR CODE                               #
