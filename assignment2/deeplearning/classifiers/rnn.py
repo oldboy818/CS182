@@ -156,7 +156,7 @@ class CaptioningRNN(object):
         #     vectors for all timesteps, producing an array of shape (N, T, H). 
         if self.cell_type == 'rnn':
             h, caches['h'] = rnn_forward(embed, h0, Wx, Wh, b)
-        else:   # LSTM
+        elif self.cell_type == 'lstm':
             h, caches['h'] = lstm_forward(embed, h0, Wx, Wh, b)
 
         # (4) Use a (temporal) affine transformation to compute scores over the
@@ -249,6 +249,8 @@ class CaptioningRNN(object):
 
         # image feature에서 h0 추출
         h, _ = affine_forward(features, W_proj, b_proj)
+        # Iinitialize Cell_state
+        prev_c = np.zeros_like(h)
         # the first word로 <START> token
         word = self._start
 
@@ -260,8 +262,8 @@ class CaptioningRNN(object):
             #     current word to get the next hidden state.
             if self.cell_type == 'rnn':
                 h, _ = rnn_step_forward(x_embed, h, Wx, Wh, b)
-            else: # LSTM
-                h, _ = lstm_step_forward(x_embed, h, Wx, Wh, b)
+            elif self.cell_type == 'lstm':
+                h, prev_c, _ = lstm_step_forward(x_embed, prev_c, h, Wx, Wh, b)
 
             # (3) Apply the learned affine transformation to the next hidden state to
             #     get scores for all words in the vocabulary
@@ -272,28 +274,6 @@ class CaptioningRNN(object):
             word = scores.argmax(axis=1)
 
             captions[:, t] = word
-
-
-        # # get h0
-        # h, _ = affine_forward(features, W_proj, b_proj)
-        # # set c0 - only used if LSTM
-        # c = np.zeros(h.shape)
-
-        # # embed the <START> token index to get x0
-        # x_word = self._start
-
-        # for i in range(max_length):
-        #     x, _ = word_embedding_forward(x_word, W_embed)
-
-        #     if self.cell_type == 'rnn':
-        #         h, _ = rnn_step_forward(x, h, Wx, Wh, b)
-        #     else: # lstm
-        #         h, c, _ = lstm_step_forward(x, h, c, Wx, Wh, b)
-
-        #     scores, _ = affine_forward(h, W_vocab, b_vocab)
-
-        #     x_word = scores.argmax(axis=1)
-        #     captions[:,i] = x_word
             
         ############################################################################
         #                             END OF YOUR CODE                             #

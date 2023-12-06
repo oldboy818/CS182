@@ -295,31 +295,22 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     #############################################################################
     # TODO: Implement the forward pass for a single timestep of an LSTM.        #
     # You may want to use the numerically stable sigmoid implementation above.  #
-    #############################################################################
-    # N, H = prev_h.shape
-    
-    # # compute a = [a_i, a_f, a_o, a_g]
-    # # A = X_t W_x + H_{t-1} Wh + b
-    # A = x.dot(Wx) + prev_h.dot(Wh) + b
+    ############################################################################
+    N, H = prev_c.shape
 
-    # # split up the dim 4H output
-    # A_i = A[:, 0:H]
-    # A_f = A[:, H:2*H]
-    # A_o = A[:, 2*H:3*H]
-    # A_g = A[:, 3*H:4*H]
+    # compute an activation vector a, shape (N, 4H)
+    a = np.dot(x, Wx) + np.dot(prev_h, Wh) + b
 
-    # i = sigmoid(A_i)
-    # f = sigmoid(A_f)
-    # o = sigmoid(A_o)
-    # g = np.tanh(A_g)
+    # divide an activation vecotr into four vectors, each shape (N, H)
+    a_i, a_f, a_o, a_g = a[:, :H], a[:, H:2*H], a[:, 2*H:3*H], a[:, 3*H:]
 
-    # # next cell state c
-    # next_c = f * prev_c + i * g
+    # compute next cell state c_t, shape (N, H)
+    next_c = sigmoid(a_f) * prev_c + sigmoid(a_i) * np.tanh(a_g)
 
-    # # next hidden state
-    # next_h = o * np.tanh(next_c)
+    # compute next hiddent state h_t, shape (N, H)
+    next_h = sigmoid(a_o) * np.tanh(next_c)
 
-    # cache = x, prev_h, prev_c, Wx, Wh, b, i, f, o, g, next_c, next_h
+    cache = (x, prev_h, prev_c, Wx, Wh, b, a_i, a_f, a_o, a_g, next_h, next_c)
     
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -353,38 +344,34 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     # the output value from the nonlinearity.                                   #
     #############################################################################
 
-    # x, prev_h, prev_c, Wx, Wh, b, i, f, o, g, next_c, next_h = cache
+    x, prev_h, prev_c, Wx, Wh, b, a_i, a_f, a_o, a_g, next_h, next_c = cache
+
+    N, D = x.shape
+    _, H = prev_h.shape
+
+    # 현 셀은 비선형이 가해지지 않은 선형 상태이다. 따라서 이전 셀에 대한 그래디언트는 현재 셀의 그래디언트에
+    # forget gate를 곱한 형태 (dL/dC_t * f_t).
+    # 이때 현재 셀에 대한 그래디언트는 다음 셀의 그래디언트와 다음 hidden_state에 대한 그래디언트로 구성
+    dnext_c += dnext_h * sigmoid(a_o) * (1 - np.tanh(next_c)**2)
+    dprev_c = dnext_c * sigmoid(a_f)
     
-    # # so, not even going to attempt this analytically - let's compute using backprop across
-    # # the computational graph shown in the lecture slide.
+    # compute the derivative of forget/input/output gate, shape (N,H)
+    # derivative sigmoid is 'sigmoid(x) * (1 - sigmoid(x))'
+    da_f = dnext_c * prev_c * (sigmoid(a_f) * (1 - sigmoid(a_f)))
+    da_i = dnext_c * np.tanh(a_g) * (sigmoid(a_i) * (1 - sigmoid(a_i)))
+    da_o = dnext_h * np.tanh(next_c) * (sigmoid(a_o) * (1 - sigmoid(a_o)))
+    da_g = dnext_c * sigmoid(a_i) * (1 - np.tanh(a_g)**2)
 
-    # # next_c gets derivative direct and through next_h
-    # # deriv of tanh(x) is 1-tanh^2(x)
-    # do = np.tanh(next_c) * dnext_h
-    # dnext_c_2 = o * (1 - np.tanh(next_c)**2) * dnext_h
-    # dnext_c += dnext_c_2
-    
-    # dprev_c = f * dnext_c
-    # df = prev_c * dnext_c
+    # Concatenate the gradient contributions from the gates, shape (N, 4H)
+    da = np.concatenate((da_i, da_f, da_o, da_g), axis=1)
 
-    # di = g * dnext_c
-    # dg = i * dnext_c
-
-    # # deriv of sigmoid(x) is sigmoid(x) * (1 - sigmoid(x))
-    # dA_f = f * (1-f) * df
-    # dA_i = i * (1-i) * di
-    # dA_o = o * (1-o) * do
-    # dA_g = (1 - g**2) * dg
-
-    # # concat back in same order as split
-    # dA = np.concatenate((dA_i, dA_f, dA_o, dA_g), axis=1)
-
-    # # A = X_t W_x + H_{t-1} Wh + b
-    # dWx = x.T.dot(dA) 
-    # dx = dA.dot(Wx.T)
-    # dWh = prev_h.T.dot(dA)
-    # dprev_h = dA.dot(Wh.T)
-    # db = dA.sum(axis=0)
+    # Compute the gradients with respect to the weights and biases
+    # Wx, Wh shape (D,4H), (H,4H) / x shape (N,D) / b shape (4H,)
+    dx = np.dot(da, Wx.T)   # shape (N,D)
+    dprev_h = np.dot(da, Wh.T)  # shape (N,H)
+    dWx = np.dot(x.T, da)   # shape (D,4H)
+    dWh = np.dot(prev_h.T, da)  # shape (H,4H)
+    db = np.sum(da, axis=0)
     
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -421,20 +408,31 @@ def lstm_forward(x, h0, Wx, Wh, b):
     # You should use the lstm_step_forward function that you just defined.      #
     #############################################################################
 
-    # N, T, D = x.shape
-    # _, H = h0.shape
-    # c0 = np.zeros((N, H))
-    # h = np.zeros((N, T, H))
-    # caches = []
+    caches = []
+    N, T, D = x.shape
+    _, H = h0.shape
 
-    # for t in range(T):
-    #     if t == 0:
-    #         next_c = c0
-    #         next_h = h0
-    #     # next_h, cache = rnn_step_forward(x[:,t,:], next_h, Wx, Wh, b)
-    #     next_h, next_c, cache = lstm_step_forward(x[:,t,:], next_h, next_c, Wx, Wh, b)
-    #     h[:, t, :] = next_h
-    #     caches.append(cache)
+    # Initialize cell state
+    C0 = np.zeros(shape=(N,H))
+    # Initialize hidden state
+    h = np.zeros(shape=(N,T,H))
+
+    for t in range(T):
+        if t == 0:
+            prev_c = C0
+            prev_h = h0
+        else:
+            prev_c = next_c
+            prev_h = next_h
+        
+        # next_h shape (N,H) / next_c shape (N,H)
+        next_h, next_c, cache = lstm_step_forward(x[:, t, :], prev_h, prev_c, Wx, Wh, b)
+        
+        # hidden state update
+        h[:, t, :] = next_h
+        
+        # cache update
+        caches.append(cache)
     
     ##############################################################################
     #                               END OF YOUR CODE                             #
@@ -464,32 +462,36 @@ def lstm_backward(dh, cache):
     # You should use the lstm_step_backward function that you just defined.     #
     #############################################################################
 
-    # N, T, H = dh.shape
-    # # pluck first x to get shape
-    # _, D = cache[0][0].shape
+    N, T, H = dh.shape
+    _, D = cache[0][0].shape    # x shape
 
-    # dx  = np.zeros((N,T,D))
-    # dh0 = np.zeros((N,H))
-    # dWx = np.zeros((D,4*H))
-    # dWh = np.zeros((H,4*H))
-    # db  = np.zeros((4*H,))
+    dx = np.zeros(shape=(N,T,D))
+    dh0 = np.zeros(shape=(N,H))
+    dWx = np.zeros(shape=(D, 4*H))
+    dWh = np.zeros(shape=(H, 4*H))
+    db = np.zeros(shape=(4*H,))
 
-    # dh_t = np.zeros((N,H))
+    # Initialize graident of next Hidden_state, Cell_state
+    dprev_h = np.zeros(shape=(N,H))
+    dprev_c0 = np.zeros(shape=(N,H))
 
-    # # initial dc is zero - Loss does not depend on c
-    # dc_t = np.zeros((N,H))
+    for t in reversed(range(T)):
+        step_dh = dh[:, t, :] + dprev_h
+        step_cache = cache[t]
 
-    # for t in reversed(range(T)):
-    #     # just like as in vanilla RNN, dh (input) is the gradient of the individual losses
-    #     # each layer has 2 computational descendants because total loss is sum of individual losses
-    #     # therefore, sum rule, sum the two partial derivatives: individual, plus that flowing from next_h
-    #     dnext_h = dh_t + dh[:,t,:]
-    #     dx_t, dh_t, dc_t, dWx_t, dWh_t, db_t = lstm_step_backward(dnext_h, dc_t, cache[t])
-    #     dx[:,t,:] = dx_t
-    #     dWx += dWx_t
-    #     dWh += dWh_t
-    #     db += db_t
-    # dh0 = dh_t
+        if t == T-1:
+            dnext_c = dprev_c0
+        else:
+            dnext_c = dprev_c
+
+        dx_t, dprev_h, dprev_c, dWx_t, dWh_t, db_t = lstm_step_backward(step_dh, dnext_c, step_cache)
+
+        dx[:, t, :] = dx_t
+        dWx += dWx_t
+        dWh += dWh_t
+        db += db_t
+    
+    dh0 = dprev_h
     
     ##############################################################################
     #                               END OF YOUR CODE                             #
