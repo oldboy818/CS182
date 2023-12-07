@@ -7,7 +7,7 @@
 * Dis4: CNN Architectures & Dropout[__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis4_CNN%20Architectures%20%26%20Dropout.pdf)
 * Dis5: Review of Vision Problems [__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis5_Review%20of%20Vision%20Problems.pdf)
 * Dis6: Recurrent Neural Networks [__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis6_Recurrent%20Neural%20Networks.pdf)
-* Dis7: Attention & Transformers
+* Dis7: Attention & Transformers [__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis7_Attention%20%26%20Transformers.pdf)
 * Dis8: Pretraining & Imitation
 * Dis9: Policy Gradients & Q-Learning
 * Dis10: Generative Models
