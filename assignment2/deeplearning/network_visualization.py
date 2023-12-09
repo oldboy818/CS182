@@ -108,22 +108,28 @@ def make_fooling_image(X, target_y, model):
     # gradient ascent를 이용해 X_fooling 이미지를 조금씩 조정하여,
     # 모델이 이 이미지를 target_y 클래스로 분류하도록 유도하는 것이 목표
     for i in range(100):
+        # Forward pass
         scores = model(X_fooling)
+                # 모델의 출력으로, 각 클래스에 대한 점수를 담고 있는 (N,C) 형태의 텐서
+                # N은 배치 크기, C는 클래스 수
 
         # 이미지가 fooling image와 같아질 때 stop
-        if scores.argmax(1).item() == target_y:
+        if scores.argmax().item() == target_y:
+                # scores 텐서에서 가장 높은 점수를 가진 인덱스를 찾는다
+                # .item(): argmax가 반환하는 텐서에서 단일 값을 파이썬 기본 데이터 타입으로 변환
             break
 
         # The score of the target class
         target_scores = scores[0, target_y]
                 # scores[0, ...]: 첫 번째 차원에서 0번째 요소. N=1이므로, 첫번째 사진
-                # 모델이 X_fooling을 target_y 클래스로 분류했을 때의 점수
+                # 단일 스칼라 값, 특정 이미지(X_fooling)가 특정 클래스(target_y)로 분류될 때 모델의 예측 점수
         
         # Perform gradient ascent on the score
         model.zero_grad()           # Initialize gradient
-        target_scores.backward()    # target_scores에 대한 gradient 계산
-                                    # X_fooling 이미지를 어떻게 변경해야 target_y 클래스의 점수를
-                                    # 증가시킬 수 있는지를 알려준다
+        target_scores.backward()    
+                # target_scores가 의존하는 모든 텐서(이 경우 X_fooling)에 대한 그래디언트를 계산하고, 
+                # 이를 해당 텐서의 .grad 속성에 저장합니다.
+                # 이 gradient는 target_y 클래스의 점수를 최대화하기 위해 X_fooling을 어떻게 변경해야 하는지를 나타냄
         gradient = X_fooling.grad.data
 
         # Normalize the gradient and update the fooling image
