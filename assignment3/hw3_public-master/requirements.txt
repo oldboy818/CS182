@@ -1,5 +1,0 @@
-sentencepiece
-segtok
-ipykernel
-jupyter
-tqdm

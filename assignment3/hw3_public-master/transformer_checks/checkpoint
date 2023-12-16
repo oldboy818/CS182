@@ -1,2 +1,0 @@
-model_checkpoint_path: "transformer_decoder_block"
-all_model_checkpoint_paths: "transformer_decoder_block"
