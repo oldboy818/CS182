@@ -28,7 +28,7 @@
 * Q4: Style Transfer [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment2/StyleTransfer.ipynb)
 
 ### Assignment3 : Natural Language Processing
-* Q1. Language Modeling
+* Q1. Language Modeling [__(On-going)__](https://github.com/oldboy818/CS182/blob/main/assignment3/1%20Language%20Modeling.ipynb)
 * Q2. Summarization
 * Q3. Knowledge Distillation
 
