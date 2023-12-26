@@ -16,20 +16,32 @@ class LanguageModel(nn.Module):
 
         # Create an LSTM layer of rnn_size size. Use any features you wish.
         # We will be using batch_first convention
-        self.lstm = nn.LSTM(input_size = rnn_size, hidden_size = rnn_size,
-                            num_layers = num_layers)
+        self.lstm = nn.LSTM(input_size=rnn_size, hidden_size=rnn_size, 
+                            num_layers=num_layers, dropout=dropout)
+        
+        # Batch normalization layer
+        self.batch_norm = nn.BatchNorm1d(rnn_size)
+
         # LSTM layer does not add dropout to the last hidden output.
         # Add this if you wish.
-#         self.dropout = your_code
+        self.dropout = nn.Dropout(dropout)
+
         # Use a dense layer to project the outputs of the RNN cell into logits of
         # the size of vocabulary (vocab_size).
-        self.output = nn.Linear(rnn_size, vocab_size)   # in_feature 입력차원이 rnn_size
-                                                        # out_feature 출력차원이 vocab_size
+        self.output = nn.Linear(rnn_size, vocab_size)   
+                        # in_feature 입력차원이 rnn_size
+                        # out_feature 출력차원이 vocab_size
         
     def forward(self,x):
         embeds = self.embedding(x)
         lstm_out, _ = self.lstm(embeds)
-#         lstm_drop = your_code
-#         logits = your_code
+        
+        # Apply batch normalization to the LSTM output
+        lstm_out = lstm_out.permute(0, 2, 1)  # Adjust dimensions for batch normalization
+        lstm_out = self.batch_norm(lstm_out)
+        lstm_out = lstm_out.permute(0, 2, 1)  # Restore original dimensions
+        
+        lstm_out = self.dropout(lstm_out)
         logits = self.output(lstm_out)
+
         return logits
