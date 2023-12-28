@@ -122,7 +122,6 @@ def convert_padding_mask_to_attention_mask(sequence, padding_mask):
     Args:
         sequence (th.Tensor): Tensor of shape [batch_size, sequence_length_1, ndim]
         padding_mask (th.Tensor[bool]): Tensor of shape [batch_size, sequence_length_2]
-
     Returns:
         th.Tensor[bool]: Tensor of shape [batch_size, sequence_length_1, sequence_length_2]
     """
@@ -132,8 +131,11 @@ def convert_padding_mask_to_attention_mask(sequence, padding_mask):
                                             'Can only convert 2D position mask to 3D attention mask'
 
     attention_mask = padding_mask[:, None, :].repeat(*(1, sequence.shape[1], 1))
-    return attention_mask
-
+        # 시퀀스 마스크(padding_mask)를 어텐션 마스크(attention_mask)로 변환
+        # padding_mask[:, None, :]: padding_mask를 3D텐서로 확장. [batch_size, 1, sequence_length_2] 형태
+        # .repeat(*(1, sequence.shape[1], 1)): [batch_size, sequence_length_1, sequence_length_2]
+    
+    return attention_mask   # [batch_size, sequence_length_1, sequence_length_2]
 
 def convert_sequence_length_to_sequence_mask(sequence, sequence_lengths):
     """Given a padded input tensor of sequences and a tensor of lengths, returns
@@ -143,7 +145,6 @@ def convert_sequence_length_to_sequence_mask(sequence, sequence_lengths):
     Args:
         sequence (th.Tensor): Tensor of shape [batch_size, sequence_length, ndim]
         sequence_lengths (th.Tensor[int]): Tensor of shape [batch_size]
-
     Returns:
         th.Tensor[bool]: Tensor of shape [batch_size, sequence_length]
     """
@@ -153,9 +154,17 @@ def convert_sequence_length_to_sequence_mask(sequence, sequence_lengths):
                                         'Can only convert 1D sequence_lengths to 2D mask'
 
     indices = th.range(sequence.shape[1])[None, :].repeat(*(sequence_lengths.shape[0], 1))
+        # th.range(sequence.shape[1]): 입력 시퀀스의 길이만큼 생성. [0, 1, 2, ..., sequence.shape[1]-1]. 시퀀스의 각 위치에 대한 인덱스
+        # [None, :]: 생성된 인덱스 범위를 행렬로 변환. 1차원 벡터가 2차원 행렬로 확장. [[0, 1, 2, ..., sequence.shape[1]-1]]
+        # .repeat(*(sequence_lengths.shape[0], 1)): (batch_size, sequence_length) 형태. 만약 batch_size가 3이면,
+        #                                           [[0, 1, 2, ..., sequence.shape[1]-1],
+        #                                            [0, 1, 2, ..., sequence.shape[1]-1],
+        #                                            [0, 1, 2, ..., sequence.shape[1]-1]]
     mask = indices < sequence_lengths[:, None]
-    return mask
-
+        # 각 위치의 인덱스 값이 해당 위치의 시퀀스 길이보다 작은지를 나타내는 부울(boolean) 마스크를 생성
+        # True는 해당 위치가 시퀀스 길이보다 짧다는 것을 나타내고, False는 해당 위치가 시퀀스 길이보다 길거나 같다는 것
+        # 시퀀스의 각 위치에 대한 패딩 여부를 나타내며, 이것이 바로 시퀀스 마스크
+    return mask # [batch_size, sequence_length]
 
 def convert_to_attention_mask(sequence, mask):
     """Automatically convert from None/1D/2D/3D mask to a boolean 3D attention mask.
@@ -169,7 +178,6 @@ def convert_to_attention_mask(sequence, mask):
         mask: Optional[Tensor] of shape [batch_size]
                                      or [batch_size, sequence_length]
                                      or [batch_size, sequence_length, sequence_length]
-
     Returns:
         Optional[th.Tensor[bool]]: Tensor of shape [batch_size, sequence_length, sequence_length]
     """
@@ -178,11 +186,14 @@ def convert_to_attention_mask(sequence, mask):
     if len(mask.shape) == 1:
         mask = convert_sequence_length_to_sequence_mask(
             sequence, mask)
+        # mask 차원이 1인 경우, 시퀀스 길이에 대한 마스크로 가정하고 시퀀스 마스크로 변환
     if len(mask.shape) == 2:
         mask = convert_padding_mask_to_attention_mask(
             sequence, mask)
+        # mask 차원이 2인 경우, 패딩 마스크로 가정하고 어텐션 마스크로 변환
     if mask.dtype != th.bool:
         mask = mask.bool()
+
     return mask
 
 __all__ = ['PositionEmbedding', 'EmbeddingTranspose']

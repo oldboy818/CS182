@@ -44,7 +44,7 @@ class AttentionQKV(nn.Module):
         similarity = th.matmul(queries, keys.transpose(-2, -1)) / th.sqrt(key_dim)
                     # Compute the similarity according to the QKV formula
 
-        masked_similarity = self.apply_mask(similarity, mask=mask) 
+        masked_similarity = self.apply_mask(similarity, mask = mask) 
                             # We give you the mask to apply so that it is correct, you do not need to modify this.
         weights = th.nn.functional.softmax(masked_similarity, dim=-1)
                 # Turn the similarity into a normalized output. Remember that the last dim contains the features
@@ -181,7 +181,6 @@ class MultiHeadAttention(nn.Module):
         self.key_layer.apply(weights_init)
         self.value_layer.apply(weights_init)
         self.output_layer.apply(weights_init)
-
 
     def forward(self, inputs, mask=None):
         """Fast multi-head self attention.
