@@ -29,8 +29,8 @@
 
 ### Assignment3 : Natural Language Processing
 * Q1. Language Modeling [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment3/1%20Language%20Modeling.ipynb)
-* Q2. Summarization [__(On-going)__](https://github.com/oldboy818/CS182/blob/main/assignment3/2%20Summarization.ipynb)
-* Q3. Knowledge Distillation
+* Q2. Summarization [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment3/2%20Summarization.ipynb)
+* Q3. Knowledge Distillation [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment3/3_Knowledge_Distillation.ipynb)
 
 ### Assignment4 : Deep Reinforcement Learning
 * Q1. Imitation Learning
