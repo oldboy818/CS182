@@ -23,7 +23,7 @@ class AttentionLayerLoss(nn.Module):
     # Take the MSE loss between the student and teacher attention.
     # To simplify calculations, remember that E[E[X|Y]] = E[X].
     teacher_attn.detach_()
-    loss = 
+    loss = th.mean((teacher_attn - student_attn) ** 2)
     return loss
     ####################################  END OF YOUR CODE  ##################################
 
@@ -49,8 +49,12 @@ class HiddenLayerLoss(nn.Module):
         # then take the MSE loss between the student and teacher hidden layer outputs.
         # To simplify calculations, remember that E[E[X|Y]] = E[X].
         teacher_hddn.detach_()
-        proj_student = 
-        loss = 
+        # Project the student output into the same space as the teacher output
+        proj_student = self.proj(student_hddn)
+
+        # Calculate the Mean Squared Error (MSE) loss between teacher and student hidden layer outputs
+        loss = th.mean((teacher_hddn - proj_student) ** 2)
+
         return loss
         ####################################  END OF YOUR CODE  ##################################
 
@@ -75,8 +79,11 @@ class EmbeddingLayerLoss(nn.Module):
         # Then take their MSE loss.
         # To simplify calculations, remember that E[E[X|Y]] = E[X].
         teacher_embd.detach_()
-        proj_student = 
-        loss = 
+        # Project the student embedding into the same space as the teacher embedding
+        proj_student = self.proj(student_embd)
+
+        # Calculate the Mean Squared Error (MSE) loss between teacher and student embeddings
+        loss = th.mean((teacher_embd - proj_student) ** 2)
         return loss
         ####################################  END OF YOUR CODE  ##################################
     
@@ -101,10 +108,20 @@ class PredictionLoss(nn.Module):
         # The F.softmax and F.log_softmax will be helpful here
         # Also keep in mind that the last dimension of the prediction is the feature dimension.
         teacher_pred.detach_()
-        target_terms = 
-        pred_terms = 
-        samplewise_sce = 
+        # Apply softmax with temperature parameter 't' to both teacher and student logits
+        teacher_softmax = F.softmax(teacher_pred / t, dim=-1)
+        student_softmax = F.softmax(student_pred / t, dim=-1)
+
+        # Calculate the cross-entropy terms
+        target_terms = -th.sum(teacher_softmax * F.log_softmax(student_pred / t, dim=-1), dim=-1)
+        pred_terms = -th.sum(student_softmax * F.log_softmax(student_pred / t, dim=-1), dim=-1)
+
+        # Compute the samplewise soft cross-entropy loss
+        samplewise_sce = target_terms - pred_terms
+
+        # Calculate the mean loss
         mean_sce = samplewise_sce.mean()
+
         return mean_sce
         ####################################  END OF YOUR CODE  ##################################
 
@@ -149,19 +166,21 @@ class KnowledgeDistillationLoss(nn.Module):
         # apply the loss from each attention and hidden layer based on the layer mapping
         attention_loss = 0
         hidden_loss = 0
-        for st_i,te_i in enumerate(self.layer_mapping):
+        for st_i, te_i in enumerate(self.layer_mapping):
             attn_fn = self.__getattr__(f"attention_loss{st_i}")
-            attention_loss += 
+            attention_loss += attn_fn(teacher_out['attentions'][te_i], student_out['attentions'][st_i])
+
             hddn_fn = self.__getattr__(f"hidden_loss{st_i}")
-            hidden_loss += 
-            
-        # sum up the loss for each layer
-        loss = 
-        
-        # apply the prediction penalty during task distillation
+            hidden_loss += hddn_fn(teacher_out['hidden_states'][te_i], student_out['hidden_states'][st_i])
+
+        # Sum up the loss for each layer
+        loss = embedding_loss + attention_loss + hidden_loss
+
+        # Apply the prediction penalty during task distillation
         if penalize_prediction:
-            prediction_loss = 
-            loss += 
+            prediction_loss = self.prediction_loss(teacher_out['logits'], student_out['logits'])
+            loss += prediction_loss
+
         return loss
         ####################################  END OF YOUR CODE  ##################################
         
