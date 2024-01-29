@@ -43,7 +43,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         
         # Action이 discrete한 경우
         if self.discrete:   
-            # 
+            # 각 action에 대한 확률을 나타내는 로짓(logits) (정규화되지 않은 확률값)
+            # logit은 확률분포의 매개변수로 사용되며, 액션을 선택할 때 확률적으로 샘플링
             self.logits_na = ptu.build_mlp(input_size=self.ob_dim,
                                            output_size=self.ac_dim,
                                            n_layers=self.n_layers,
@@ -53,22 +54,28 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             self.logstd = None
             self.optimizer = optim.Adam(self.logits_na.parameters(),
                                         self.learning_rate)
+        # Action space가 continuous 경우
         else:
+            # action 값 자체를 출력해야 하기 때문에 action의 평균과 표준편차로 정의.
             self.logits_na = None
+            # Action의 평균을 생성하는 MLP
             self.mean_net = ptu.build_mlp(input_size=self.ob_dim,
                                           output_size=self.ac_dim,
                                           n_layers=self.n_layers,
                                           size=self.size)
+            # log std 초기화.
             self.logstd = nn.Parameter(
                 torch.zeros(self.ac_dim, dtype=torch.float32, device=ptu.device)
             )
             self.mean_net.to(ptu.device)
             self.logstd.to(ptu.device)
             self.optimizer = optim.Adam(
-                itertools.chain([self.logstd], self.mean_net.parameters()),
-                self.learning_rate
-            )
+                                        # itertools.chain 함수를 이용해 여러 개의 파라미터 집합을 하나의 순회 가능 객체로 결합하여
+                                        # optimizer에 전달해 하나의 optimizer로 여러 파라미터를 관리할 수 있다.
+                                        itertools.chain([self.logstd], self.mean_net.parameters()),
+                                        self.learning_rate)
 
+        # value_function을 근사하기 위한 별도의 MLP network인 nn_baseline 초기화
         if nn_baseline:
             self.baseline = ptu.build_mlp(input_size=self.ob_dim,
                                           output_size=1,
@@ -76,9 +83,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                                           size=self.size)
             self.baseline.to(ptu.device)
             self.baseline_optimizer = optim.Adam(
-                self.baseline.parameters(),
-                self.learning_rate,
-            )
+                                                self.baseline.parameters(),
+                                                self.learning_rate,)
         else:
             self.baseline = None
 
@@ -119,19 +125,36 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # This function outputs a distribution object representing the policy output for the particular observations.
     # assumes first dimension of observations 
     def forward(self, observation: torch.FloatTensor):
+        
+        # Action space가 discrete 경우
         if self.discrete:
+            # observation관측치를 network 통과시켜 logit 계산.
             logits = self.logits_na(observation)
+            # logits을 사용해서 카테고리컬 분포를 생성하고 반환.
+            # torch.distributions.Categorical은 다항분포로 이산적인 action space에서
+            # 각 action에 대한 확률을 정의. 주어진 확률(logits)에 기반하여 action을 무작위 샘플링
             return torch.distributions.Categorical(logits=logits)
+        
+        # Action space가 continuous 경우
         else:
+            # observation관측치를 통해 action의 평균값 계산.
             batch_mean = self.mean_net(observation)
+            # 로그 표준편차 특정 범위 내로 제한.
             logstd = torch.clamp(self.logstd, -10, 2) 
+            # 표준편차를 사용해 공분산 행렬을 생성.
+            # action간의 관계와 변동성을 고려하기 위해 공분산 행렬을 사용.
             scale_tril = torch.diag(torch.exp(logstd))
+            # batch 크기를 계산.
             batch_dim = batch_mean.shape[0]
+            # 각 batch item에 대해 공분산 행렬을 반복.
+            # 각 배치에 대해 공분산 행렬을 반복하는 이유는 배치 처리 중 각 데이터 포인트(observations)가 
+            # 독립적으로 처리되어 개별적인 액션 분포를 계산해야 하기 때문. 
+            # 이를 통해 각 관측치에 대한 액션의 분포를 별도로 모델링할 수 있습니다.
             batch_scale_tril = scale_tril.repeat(batch_dim, 1, 1)
+            # 평균과 공분산 행렬을 사용해서 다변량 정규분포를 생성하고 반환.
             return distributions.MultivariateNormal(
-                batch_mean,
-                scale_tril=batch_scale_tril,
-            )
+                                                    batch_mean,
+                                                    scale_tril=batch_scale_tril,)
 
 #####################################################
 #####################################################
@@ -151,7 +174,9 @@ class MLPPolicySL(MLPPolicy):
         expert actions under the policy.
         Hint: look at the documentation for torch.distributions 
         """
-        loss = None
+        action_distribution = self(observations)
+        log_prob = action_distribution.log_prob(actions)
+        loss = -log_prob.mean()
         """
         END CODE
         """
