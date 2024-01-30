@@ -51,27 +51,32 @@ class RL_Trainer(object):
         #############
 
         # Make the gym environment
+        # 사용자 정의 환경 등록. 사용자가 정의한 환경을 Gym 환경 레지스트리에 등록
         register_custom_envs()
         print(self.params['env_name'])
+
+        # 지정된 이름의 gym 환경 개체를 생성
         self.env = gym.make(self.params['env_name'])
+        
+        # Atari 환경에서 비디오 로깅을 위해 환경에 추가적인 처리를 위한 래퍼들을 적용
         if 'env_wrappers' in self.params:
             # These operations are currently only for Atari envs
             self.env = wrappers.Monitor(
-                self.env,
-                os.path.join(self.params['logdir'], "gym"),
-                force=True,
-                video_callable=(None if self.params['video_log_freq'] > 0 else False),
-            )
+                                        self.env,
+                                        os.path.join(self.params['logdir'], "gym"),
+                                        force=True,
+                                        video_callable=(None if self.params['video_log_freq'] > 0 else False),
+                                        )
             self.env = params['env_wrappers'](self.env)
             self.mean_episode_reward = -float('nan')
             self.best_mean_episode_reward = -float('inf')
         if 'non_atari_colab_env' in self.params and self.params['video_log_freq'] > 0:
             self.env = wrappers.Monitor(
-                self.env,
-                os.path.join(self.params['logdir'], "gym"),
-                force=True,
-                video_callable=(None if self.params['video_log_freq'] > 0 else False),
-            )
+                                        self.env,
+                                        os.path.join(self.params['logdir'], "gym"),
+                                        force=True,
+                                        video_callable=(None if self.params['video_log_freq'] > 0 else False),
+                                        )
             self.mean_episode_reward = -float('nan')
             self.best_mean_episode_reward = -float('inf')
 
@@ -144,12 +149,15 @@ class RL_Trainer(object):
                 print("\n\n********** Iteration %i ************"%itr)
 
             # decide if videos should be rendered/logged at this iteration
+            # 비디오 로깅 여부 결정
             if itr % self.params['video_log_freq'] == 0 and self.params['video_log_freq'] != -1:
                 self.logvideo = True
             else:
                 self.logvideo = False
 
             # decide if metrics should be logged
+            # 측정 지표 로깅 여부 결정. 측정지표란, 훈련 과정에서 에이전트의 성능을 평가하기 위해 사용되는 다양한 수치
+            # 예를 들어, 강화학습에서는 보상의 총합, 에피소드 당 평균 보상, 에피소드의 길이, 손실 함수의 값 등이 측정 지표로 사용
             if self.params['scalar_log_freq'] == -1:
                 self.logmetrics = False
             elif itr % self.params['scalar_log_freq'] == 0:
@@ -157,45 +165,61 @@ class RL_Trainer(object):
             else:
                 self.logmetrics = False
 
-            # collect trajectories, to be used for training
+            # collect trajectories, to be used for training 훈련 과정에서 데이터를 수집
+            # 에이전트가 DQNAgent 타입인 경우
             if isinstance(self.agent, DQNAgent):
                 # only perform an env step and add to replay buffer for DQN
+                # 환경에서 한 스텝을 진행하고 그 결과(상태, 보상 등)을 재생 버퍼에 저장
                 self.agent.step_env()
+                # 배치에서 수집된 환경의 스텝 수이며, DQNAgentd의 경우 1
                 envsteps_this_batch = 1
                 train_video_paths = None
                 paths = None
+            # 에이전트가 ACAgent 타입인 경우
+            # self.collect_training_trajectories함수를 이용해 훈련 데이터 수집
+            # 여러 에피소드에서 데이터 수집하고, 그 결과를 paths에 저장
             else:
                 use_batchsize = self.params['batch_size']
                 # if itr==0:
                     # use_batchsize = self.params['batch_size_initial']
+                # envsteps_this_batch은 이 과정에서 수집된 총 환경의 스텝 수
                 paths, envsteps_this_batch, train_video_paths = (
                     self.collect_training_trajectories(
-                        itr, initial_expertdata, collect_policy, use_batchsize)
+                                itr, initial_expertdata, collect_policy, use_batchsize)
                 )
-
+            
             self.total_envsteps += envsteps_this_batch
 
             # relabel the collected obs with actions from a provided expert policy
-            if relabel_with_expert and itr>=start_relabel_with_expert:
+            # 학습된 정책이 경험하지 못한 상태를 마주쳤을 때, 전문가의 지식을 사용하여 학습 데이터를 보강하는 데 사용
+            # 이는 학습된 정책의 일반화 능력을 향상시키는 데 도움
+            # 현재 이터레이션이 전문가 정책을 사용하여 데이터를 재레이블(relabel)하기 시작해야 하는 시점인지를 확인
+            if relabel_with_expert and itr >= start_relabel_with_expert:
+                # do_relabel_with_expert 함수를 이용해 수집된 관측 데이터(paths)에 대해서
+                # 전문가의 정책(expert_policy)을 사용해 새로운 레이블을 부여
                 paths = self.do_relabel_with_expert(expert_policy, paths)
 
             # add collected data to replay buffer
             self.agent.add_to_replay_buffer(paths)
 
             # train agent (using sampled data from replay buffer)
+            # 주어진 이터레이션에서 에이전트의 성능을 향상시키는 데 중요한 단계
             if itr % print_period == 0:
                 print("\nTraining agent...")
+            # 에이전트 훈련. 재생 버퍼에서 샘플링된 데이터를 사용하여 에이전트를 훈련하고, 훈련 로그를 반환
             all_logs = self.train_agent()
 
-            # log/save
+            # log/save 로그 및 저장
             if self.logvideo or self.logmetrics:
                 # perform logging
                 print('\nBeginning logging procedure...')
+                # DQNAgent 로깅. 
                 if isinstance(self.agent, DQNAgent):
                     self.perform_dqn_logging(all_logs)
+                # 일반 로깅
                 else:
                     self.perform_logging(itr, paths, eval_policy, train_video_paths, all_logs)
-
+                # 모델 저장
                 if self.params['save_params']:
                     self.agent.save('{}/agent_itr_{}.pt'.format(self.params['logdir'], itr))
 
@@ -257,7 +281,10 @@ class RL_Trainer(object):
         Hint: use expert_policy.get_action to query the expert on an array of 
         observations.
         """
-        paths = paths
+        for path in paths:
+            observations = path["observation"]
+            expert_actions = expert_policy.get_action(observations)
+            path["action"] = expert_actions
         """
         END CODE
         """
