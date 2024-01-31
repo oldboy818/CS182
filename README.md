@@ -33,7 +33,7 @@
 * Q3. Knowledge Distillation [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment3/3_Knowledge_Distillation.ipynb)
 
 ### Assignment4 : Deep Reinforcement Learning
-* Q1. Imitation Learning
+* Q1. Imitation Learning [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment4/Imitation%20Learning.ipynb)
 * Q2. Policy Gradients
 * Q3. DQN
 * Q4. Actor Critic
