@@ -9,7 +9,7 @@
 * Dis6: Recurrent Neural Networks [__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis6_Recurrent%20Neural%20Networks.pdf)
 * Dis7: Attention & Transformers [__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis7_Attention%20%26%20Transformers.pdf)
 * Dis8: Pretraining & Imitation [__(Done)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis8_Pretraining%20%26%20Imitation.pdf)
-* Dis9: Policy Gradients & Q-Learning
+* Dis9: Policy Gradients & Q-Learning [__(On-going)__](https://github.com/oldboy818/CS182/blob/main/Discussion/dis9_Policy%20Gradients%20%26%20Q-Learning.pdf)
 * Dis10: Generative Models
 * Dis11: GANs & Adversarial Attacks
 * Dis12: Meta Learning
