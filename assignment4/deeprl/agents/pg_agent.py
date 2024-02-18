@@ -130,7 +130,8 @@ class PGAgent(BaseAgent):
         TODO: Return a numpy array containing the returns for this trajectory.
         All entries in this array should be identical.
         """
-        discounted_returns = None
+        discounted_returns = np.array([self.gamma ** t * r for t, r in enumerate(rewards)])
+        list_of_discounted_returns = np.ones_like(discounted_returns) * (discounted_returns.sum())
         """
         END CODE
         """
