@@ -150,10 +150,17 @@ class PGAgent(BaseAgent):
         indices [t, T] instead of [0, T].
         Using a for loop is fine, no need to vectorize this (though you can).
         """
-        list_of_discounted_cumsums = None
+        # Initialize an array to store the discounted sums
+        list_of_discounted_cumsums = np.zeros_like(rewards, dtype=float)
+        # Start with the last reward (which is the same as the discounted sum)
+        running_add = 0
+        # Loop over the rewards from T-1 (second to last) down to 0 (first)
+        for t in reversed(range(len(rewards))):
+            running_add = rewards[t] + self.gamma * running_add
+            list_of_discounted_cumsums[t] = running_add
         """
         END CODE
-        """
+        """ 
 
         return list_of_discounted_cumsums
 

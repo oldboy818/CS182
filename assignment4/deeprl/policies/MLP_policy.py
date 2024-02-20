@@ -205,7 +205,7 @@ class MLPPolicyPG(MLPPolicy):
         """
         TODO: compute the policy gradient given already compute advantages adv_n
         """
-        loss = None
+        loss = - (self(observations).log_prob(actions) * adv_n).mean()
         """
         END CODE
         """
