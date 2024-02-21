@@ -61,6 +61,8 @@ class PGAgent(BaseAgent):
             # For each point (s_t, a_t), associate its value as being the discounted sum of rewards over the full trajectory
             # In other words: value of (s_t, a_t) = sum_{t'=0}^T gamma^t' r_{t'}
             q_values = np.concatenate([self._discounted_return(r) for r in rewards_list])
+            # 몬테카를로 evaluation은 실제 에피소드를 통해 실제 보상 데이터를 쓰니 Q-value가 보상의 총합이 된다.
+            # np.concatenate()
 
         # Case 2: reward-to-go PG
         # Estimate Q^{pi}(s_t, a_t) by the discounted sum of rewards starting from t
@@ -69,6 +71,7 @@ class PGAgent(BaseAgent):
             # For each point (s_t, a_t), associate its value as being the discounted sum of rewards over the full trajectory
             # In other words: value of (s_t, a_t) = sum_{t'=t}^T gamma^(t'-t) * r_{t'}
             q_values = np.concatenate([self._discounted_cumsum(r) for r in rewards_list])
+            # reward-to-go가 적용된 몬테카를로 evaluation. 근데 강의에서 state-value function을 Q function으로 하네.
 
         return q_values
 
@@ -82,6 +85,8 @@ class PGAgent(BaseAgent):
             baselines_unnormalized = self.actor.run_baseline_prediction(obs)
             ## ensure that the baseline and q_values have the same dimensionality
             ## to prevent silent broadcasting errors
+            # baselines_unnormalized : baseline MLP를 통과한 np.array 형태를 반환. [N]
+
             assert baselines_unnormalized.ndim == q_values.ndim
             ## baseline was trained with standardized q_values, so ensure that the predictions
             ## have the same mean and standard deviation as the current batch of q_values
@@ -89,7 +94,7 @@ class PGAgent(BaseAgent):
             """
             TODO: compute advantage estimates using q_values and baselines
             """
-            advantages = None
+            advantages = q_values - baselines
             """
             END CODE
             """

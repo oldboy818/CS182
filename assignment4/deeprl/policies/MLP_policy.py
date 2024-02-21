@@ -217,11 +217,16 @@ class MLPPolicyPG(MLPPolicy):
             # first standardize qvals to make this easier to train
             targets_n = (qvals - np.mean(qvals)) / (np.std(qvals) + 1e-8)
             targets_n = ptu.from_numpy(targets_n)
+            # 표준화하는 이유는 수렴을 가속하고 학습을 더 안정적으로
             """
             TODO: update the baseline value function by regressing to the values
             Hint: see self.baseline_loss for the appropriate loss
             """
-            baseline_loss = None
+            baseline_loss = self.baseline_loss(self.baseline(observations).squeeze(), targets_n)
+            # squeeze()를 적용하는 이유는 targets_n과 차원을 일치시키기 위해 차원의 크기가 1인 차원을 제거
+            # self.baseline(observations).squeeze() : 신경망을 통해 관측값에서 예측된 가치 함수 V_{phi}
+            # targets_n : 실제 가치(target value) y_i
+            # 두 값의 평균 제곱 오차(MSE, Mean Squared Error)
             """
             END CODE
             """
