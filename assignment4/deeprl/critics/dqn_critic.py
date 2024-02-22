@@ -29,12 +29,12 @@ class DQNCritic(BaseCritic):
         self.q_net = network_initializer(self.ob_dim, self.ac_dim)
         self.q_net_target = network_initializer(self.ob_dim, self.ac_dim)
         self.optimizer = self.optimizer_spec.constructor(
-            self.q_net.parameters(),
-            **self.optimizer_spec.optim_kwargs
+                    self.q_net.parameters(),
+                    **self.optimizer_spec.optim_kwargs
         )
         self.learning_rate_scheduler = optim.lr_scheduler.LambdaLR(
-            self.optimizer,
-            self.optimizer_spec.learning_rate_schedule,
+                    self.optimizer,
+                    self.optimizer_spec.learning_rate_schedule,
         )
         self.loss = nn.SmoothL1Loss()  # AKA Huber loss
         self.q_net.to(ptu.device)
@@ -90,7 +90,14 @@ class DQNCritic(BaseCritic):
         are passed through the target values.
         Hint: Use torch.no_grad or .detach() to ensure no gradients are passed.
         """
-        target = None
+        with torch.no_grad():  # 타겟 Q 값에 대한 그래디언트 계산을 방지
+            # 다음 상태에서 가능한 모든 행동에 대한 Q 값 예측
+            next_state_values = self.q_net_target(next_ob_no).max(1)[0]
+            # 게임이 끝난 경우에는 타겟 Q 값이 0이 되어야 함
+            next_state_values = next_state_values * (1 - terminal_n)
+            # 타겟 Q 값 계산
+            target = reward_n + self.gamma * next_state_values
+
         """
         END CODE
         """
