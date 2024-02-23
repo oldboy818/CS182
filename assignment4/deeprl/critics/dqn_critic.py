@@ -6,7 +6,6 @@ from torch import nn
 
 from deeprl.infrastructure import pytorch_util as ptu
 
-
 class DQNCritic(BaseCritic):
 
     def __init__(self, hparams, optimizer_spec, **kwargs):
@@ -19,6 +18,7 @@ class DQNCritic(BaseCritic):
         else:
             self.input_shape = hparams['input_shape']
 
+        # Hyperparameter
         self.ac_dim = hparams['ac_dim']
         self.double_q = hparams['double_q']
         self.grad_norm_clipping = hparams['grad_norm_clipping']
@@ -26,6 +26,8 @@ class DQNCritic(BaseCritic):
 
         self.optimizer_spec = optimizer_spec
         network_initializer = hparams['q_func']
+        
+        # Q-network와 타켓 Q-network 생성 및 초기화
         self.q_net = network_initializer(self.ob_dim, self.ac_dim)
         self.q_net_target = network_initializer(self.ob_dim, self.ac_dim)
         self.optimizer = self.optimizer_spec.constructor(
@@ -90,13 +92,28 @@ class DQNCritic(BaseCritic):
         are passed through the target values.
         Hint: Use torch.no_grad or .detach() to ensure no gradients are passed.
         """
+        # target = None
         with torch.no_grad():  # 타겟 Q 값에 대한 그래디언트 계산을 방지
-            # 다음 상태에서 가능한 모든 행동에 대한 Q 값 예측
-            next_state_values = self.q_net_target(next_ob_no).max(1)[0]
-            # 게임이 끝난 경우에는 타겟 Q 값이 0이 되어야 함
-            next_state_values = next_state_values * (1 - terminal_n)
-            # 타겟 Q 값 계산
-            target = reward_n + self.gamma * next_state_values
+            # 다음 상태의 Q 값 예측
+            next_q_values = self.q_net_target(next_ob_no)
+            
+            if self.double_q:
+            #     # 다음 상태에서 현재 Q 네트워크에 의해 선택된 행동의 인덱스를 얻습니다
+            #     _, next_actions = self.q_net(next_ob_no).max(dim=1, keepdim=True)
+            #     # 선택된 행동에 대한 타겟 Q 네트워크의 Q 값을 가져옵니다
+            #     next_q_values = next_q_values.gather(1, next_actions).squeeze()
+
+            else:
+                # 다음 상태에서 가능한 모든 행동에 대한 최대 Q 값 선택
+                # 'dim=1'은 신경망의 출력이 (), '[0]'은 max()는 (최대값, 인덱스)로 최대값만 출력
+                max_q_values = next_q_values.max(dim=1)[0]
+
+            # 게임이 끝나지 않은 상태에 대해서만 미래 보상을 고려합니다
+            # 에피소드가 종료되면 'terminal_n'이 1, 비종료면 0
+            max_q_values = max_q_values * (1 - terminal_n)
+            # 벨만 방정식에 따라 타겟 Q 값을 계산합니다
+            # target value : y = r(현재 보상) + gamma * max_{a'}(max(Q_phi')(s',a'))
+            target = reward_n + (self.gamma * max_q_values)
 
         """
         END CODE

@@ -34,7 +34,7 @@ class DQNAgent(object):
     def add_to_replay_buffer(self, paths):
         pass
 
-    def step_env(self):
+    def step_env(self):     # repaly buffer에 transition을 추가
         """
             Step the env and store the transition
             At the end of this block of code, the simulator should have been
