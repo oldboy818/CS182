@@ -16,7 +16,9 @@ class ArgMaxPolicy(object):
         TODO: return the action that maximizes the Q-value 
         at the current observation as the output.
         """
-        action = None
+        # argmax() : 주어진 축에 대해 최대값을 가지는 인덱스 반환
+        # -1 : 텐서의 마지막 차원을 의미. 
+        action = self.critic.qa_values(observation).argmax(-1)
         """
         END CODE
         """

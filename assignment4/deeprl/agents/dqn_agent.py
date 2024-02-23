@@ -39,7 +39,7 @@ class DQNAgent(object):
             Step the env and store the transition
             At the end of this block of code, the simulator should have been
             advanced one step, and the replay buffer should contain one more transition.
-            Note that self.last_obs must always point to the new latest observation.
+            !! Note that self.last_obs must always point to the new latest observation.
         """        
         self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
         eps = self.exploration.value(self.t)
@@ -52,7 +52,12 @@ class DQNAgent(object):
             TODO: epsilon greedy takes a random action with probability eps.
             Set the perform_random_action variable appropriately.
             """
-            perform_random_action = None 
+            # binomial 이항분포 : eps를 기준으로 참/거짓을 결정하는 이산적인 선택이 필요
+            # 따라서 이항분포뿐 아니라 균등분포(uniform distribution)
+            perform_random_action = np.random.binomial(1, eps)
+
+            # Uniform Distribution
+            # perform_random_action = np.random.rand() < eps
             """
             END CODE
             """
@@ -60,7 +65,7 @@ class DQNAgent(object):
             """
             TODO: take a random action if perform_random_action is True
             """
-            action = None 
+            action = np.random.randint(self.num_actions)
             """
             END CODE
             """
@@ -71,7 +76,7 @@ class DQNAgent(object):
             """
             TODO: otherwise, take the action accoding to the argmax policy
             """
-            action = None 
+            action = self.actor.get_action(processed_obs)
             """
             END CODE
             """

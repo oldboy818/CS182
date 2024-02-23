@@ -98,10 +98,10 @@ class DQNCritic(BaseCritic):
             next_q_values = self.q_net_target(next_ob_no)
             
             if self.double_q:
-            #     # 다음 상태에서 현재 Q 네트워크에 의해 선택된 행동의 인덱스를 얻습니다
-            #     _, next_actions = self.q_net(next_ob_no).max(dim=1, keepdim=True)
-            #     # 선택된 행동에 대한 타겟 Q 네트워크의 Q 값을 가져옵니다
-            #     next_q_values = next_q_values.gather(1, next_actions).squeeze()
+                # 다음 상태에서 현재 Q 네트워크에 의해 선택된 행동의 인덱스를 얻습니다
+                _, next_actions = self.q_net(next_ob_no).max(dim=1, keepdim=True)
+                # 선택된 행동에 대한 타겟 Q 네트워크의 Q 값을 가져옵니다
+                next_q_values = next_q_values.gather(1, next_actions).squeeze()
 
             else:
                 # 다음 상태에서 가능한 모든 행동에 대한 최대 Q 값 선택
