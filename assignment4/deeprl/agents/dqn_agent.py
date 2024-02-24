@@ -45,6 +45,7 @@ class DQNAgent(object):
         eps = self.exploration.value(self.t)
 
         if self.t < self.learning_starts:
+        # 만약 에이전트가 아직 학습 초기단계라면, 더 다양한 행동의 탐색하기 위해 무작위로 행동을 선택
             # initially take random actions to get diverse behavior in the buffer
             perform_random_action = True
         else:
@@ -55,6 +56,7 @@ class DQNAgent(object):
             # binomial 이항분포 : eps를 기준으로 참/거짓을 결정하는 이산적인 선택이 필요
             # 따라서 이항분포뿐 아니라 균등분포(uniform distribution)
             perform_random_action = np.random.binomial(1, eps)
+                                    # eps 확률로 1을 반환, 그 외의 경우(1-eps 확률)로 0을 반환
 
             # Uniform Distribution
             # perform_random_action = np.random.rand() < eps
@@ -86,9 +88,11 @@ class DQNAgent(object):
         self.last_obs = next_obs.copy()
 
         # stores the result of taking this action into the replay buffer
+        # 액션의 결과를 replay buffer에 저~장
         self.replay_buffer.store_effect(self.replay_buffer_idx, action, reward, done)
 
         # If taking this step resulted in the episode terminating, reset the env (and the latest observation)
+        # 에피소드가 종료된 경우, 환경의 리셋
         if done:
             self.last_obs = self.env.reset()
 
