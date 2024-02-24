@@ -34,6 +34,6 @@
 
 ### Assignment4 : Deep Reinforcement Learning
 * Q1. Imitation Learning [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment4/Imitation%20Learning.ipynb)
-* Q2. Policy Gradients
-* Q3. DQN
+* Q2. Policy Gradients [__(Done)__](https://github.com/oldboy818/CS182/blob/main/assignment4/Policy%20Gradients.ipynb)
+* Q3. DQN [__(On-going)__](https://github.com/oldboy818/CS182/blob/main/assignment4/DQN.ipynb)
 * Q4. Actor Critic
