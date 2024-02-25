@@ -50,6 +50,7 @@ class DQNAgent(object):
             perform_random_action = True
         else:
             """
+            # epsilon-greedy exploration 이탐적 탐색
             TODO: epsilon greedy takes a random action with probability eps.
             Set the perform_random_action variable appropriately.
             """

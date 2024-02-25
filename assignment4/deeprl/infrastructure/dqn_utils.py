@@ -337,6 +337,7 @@ def get_wrapper_by_name(env, classname):
         else:
             raise ValueError("Couldn't find wrapper named %s"%classname)
 
+# replay buffer에 행동의 결과를 저장
 class MemoryOptimizedReplayBuffer(object):
     def __init__(self, size, frame_history_len, lander=False):
         """This is a memory efficient implementation of the replay buffer.
@@ -500,7 +501,7 @@ class MemoryOptimizedReplayBuffer(object):
         at index idx. The reason `store_frame` and `store_effect` is broken
         up into two functions is so that once can call `encode_recent_observation`
         in between.
-
+        
         Paramters
         ---------
         idx: int
