@@ -40,7 +40,7 @@ class DQNAgent(object):
             At the end of this block of code, the simulator should have been
             advanced one step, and the replay buffer should contain one more transition.
             !! Note that self.last_obs must always point to the new latest observation.
-        """        
+        """
         self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
         eps = self.exploration.value(self.t)
 
@@ -61,6 +61,7 @@ class DQNAgent(object):
 
             # Uniform Distribution
             # perform_random_action = np.random.rand() < eps
+            # np.random.rand() : 0~1 사이의 랜덤 숫자를 동일한 확률로 
             """
             END CODE
             """
@@ -68,6 +69,7 @@ class DQNAgent(object):
             """
             TODO: take a random action if perform_random_action is True
             """
+            # 0 ~ 액션 수 중 랜덤으로 액션(정수) 결정
             action = np.random.randint(self.num_actions)
             """
             END CODE
