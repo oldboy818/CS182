@@ -74,7 +74,10 @@ class BootstrappedContinuousCritic(nn.Module, BaseCritic):
         HINT: make sure to squeeze the output of the critic_network to ensure
               that its dimensions match the reward
         """
-        target_value = None
+        acts = actor(next_obs).sample()
+        next_q_val = self.target_network(torch.cat((next_obs, acts), axis=-1)).squeeze(1)
+        next_q_val[terminals.bool()] = 0.0
+        target_value = rewards + self.gamma * next_q_val
         """
         END CODE
         """
