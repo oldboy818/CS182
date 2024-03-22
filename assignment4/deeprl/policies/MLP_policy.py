@@ -265,7 +265,6 @@ class MLPPolicyAC(MLPPolicy):
             return torch.distributions.transformed_distribution.TransformedDistribution(
                     base_dist, [torch.distributions.transforms.TanhTransform()])
 
-
     def update(self, observations, critic):
         observations = ptu.from_numpy(observations)
         """
@@ -276,7 +275,8 @@ class MLPPolicyAC(MLPPolicy):
         distributions, look at the rsample function to differentiate through 
         samples from the action distribution.
         """
-        loss = None
+        acts = self(observations).rsample()
+        loss = - critic(observations, acts).mean()
         """
         END CODE
         """

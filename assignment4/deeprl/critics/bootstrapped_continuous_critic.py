@@ -74,7 +74,13 @@ class BootstrappedContinuousCritic(nn.Module, BaseCritic):
         HINT: make sure to squeeze the output of the critic_network to ensure
               that its dimensions match the reward
         """
-        target_value = None
+        acts = actor(next_obs).sample()
+        # 가치 함수를 근사하기 위한 신경망은 다음 상태와 현재 행동을 입력으로 받아 상태-행동의 가치 추정치를 반환
+        next_q_val = self.forward(next_obs, acts)
+        # 현재 시간 t에서 상태가 종결인지 여부를 확인
+        next_q_val[terminals.bool()] = 0.0
+        # bootstrapped 적용된 target value 계산
+        target_value = rewards + self.gamma * next_q_val
         """
         END CODE
         """
