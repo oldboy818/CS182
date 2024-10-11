@@ -65,7 +65,7 @@ def rnn_step_backward(dnext_h, cache):
     # HINT: For the tanh function, you can compute the local derivative in terms #
     # of the output value from tanh.                                             #
     ##############################################################################
-    
+    # 이전 캐쉬 업로드    
     next_h, x, prev_h, Wx, Wh, b = cache
 
     # tanh의 derivative 형태는 (1 - tanh^2)
