@@ -78,7 +78,6 @@ class DQNCritic(BaseCritic):
             # _, next_actions = self.q_net(next_ob_no).max(dim=1, keepdim=True)
             # # 선택된 행동에 대한 타겟 Q 네트워크의 Q 값을 가져옵니다
             # max_q_values = next_q_values.gather(1, next_actions).squeeze()
-
             next_ac = self.q_net(next_ob_no).max(-1)[1]
             next_qa_t_values = self.q_net_target(next_ob_no)
             next_q_t_values = torch.gather(next_qa_t_values, 1, next_ac.unsqueeze(1)).squeeze(1)
